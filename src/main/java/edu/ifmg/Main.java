@@ -1,5 +1,6 @@
 package edu.ifmg;
 
+import edu.ifmg.FileExport.FileExport;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Main {
     private static Logger logger = LoggerFactory.getLogger(Logger.class);
@@ -57,6 +59,8 @@ public class Main {
 
         String sourceFilePath = cmd.getOptionValue("source-file");
         String outputFilePath = cmd.getOptionValue("output-file");
+        if (!outputFilePath.endsWith("/"))
+            outputFilePath += "/";
         String androidJar = cmd.getOptionValue("android-jars");
 
         logger.info("Source file path: " + sourceFilePath);
@@ -97,18 +101,51 @@ public class Main {
             validClasses.add(sootClass);
         }
 
-        // Printing callgraph's general inforamation
-        logger.info("Printing call graph's general information...");
-        int classIndex = 0;
+        // Printing callgraph's general inforamation into dot file
+        logger.info("Printing call graph's general information into dot file...");
+        StringBuilder fileData = new StringBuilder();
+        FileExport exportedFile = new FileExport("");
+        int index = 0;
+        Edge edge = null;
+        List<String> methodsSigs = null;
+        List<SootMethod> methods = null;
+        String sourceSignature = null;
+        String targetSignature = null;
+        String aux = "";
+        List<String> edgesStrings = new ArrayList<>();
         for (SootClass sootClass : validClasses) {
-            System.out.printf("Class %d: %s%n", ++classIndex, sootClass.getName());
-            for (SootMethod sootMethod : sootClass.getMethods()) {
-                int incomingEdge = 0;
-                for (Iterator<Edge> it = callGraph.edgesInto(sootMethod); it.hasNext(); incomingEdge++, it.next());
-                int outgoingEdge = 0;
-                for (Iterator<Edge> it = callGraph.edgesOutOf(sootMethod); it.hasNext(); outgoingEdge++, it.next());
-                System.out.printf("\tMethod %s, #IncomeEdges: %d, #OutgoingEdges: %d%n", sootMethod.getName(), incomingEdge, outgoingEdge);
+            exportedFile.setFileName(outputFilePath + sootClass.getName() + ".dot");
+            fileData.append("digraph ").append(sootClass.getName().replaceAll("\\.","_")).append(" {\n");
+            methods = sootClass.getMethods();
+            methodsSigs = methods.stream().map(SootMethod::getSignature).toList();
+            for (SootMethod sootMethod : methods) {
+                // Writing graph's nodes
+                fileData.append(index + " [label=\"" + sootMethod.getSignature() + "\"];\n");
+                // Writing graph's edges
+                for (Iterator<Edge> it = callGraph.edgesInto(sootMethod); it.hasNext(); ) {
+                    edge = it.next();
+                    sourceSignature = edge.src().getSignature();
+                    aux = methodsSigs.indexOf(sourceSignature) + " -> " + index + ";\n";
+                    if (methodsSigs.contains(sourceSignature) && !edgesStrings.contains(aux)) {
+                        fileData.append(aux);
+                        edgesStrings.add(aux);
+                    }
+                }
+                for (Iterator<Edge> it = callGraph.edgesOutOf(sootMethod); it.hasNext(); ) {
+                    edge = it.next();
+                    targetSignature = edge.tgt().getSignature();
+                    aux = index + " -> " + methodsSigs.indexOf(targetSignature) + ";\n";
+                    if (methodsSigs.contains(targetSignature) && !edgesStrings.contains(aux)) {
+                        fileData.append(aux);
+                        edgesStrings.add(aux);
+                    }
+                }
+                index++;
             }
+            index = 0;
+            fileData.append("}");
+            exportedFile.export(fileData.toString());
+            fileData.delete(0, fileData.length());
         }
     }
 }
