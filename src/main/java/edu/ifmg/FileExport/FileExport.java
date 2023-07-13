@@ -1,31 +1,31 @@
 package edu.ifmg.FileExport;
 
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 
 public class FileExport {
-    private String fileName;
-    public FileExport(String name) {
-        fileName = name;
-    }
-    public int export(String data) {
+    private Path filePath = Path.of("");
+    public void export(String data) throws RuntimeException {
+        if (filePath.toString().equals("")) {
+            throw new RuntimeException();
+        }
+
         byte[] bytes = data.getBytes();
         try {
-            FileOutputStream outFile = new FileOutputStream(fileName);
+            FileOutputStream outFile = new FileOutputStream(filePath.toFile());
             outFile.write(bytes);
             outFile.close();
-            return 0;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void setFileName(String fileName) {
-        this.fileName = fileName;
+    public void setFilePath(String name) {
+        this.filePath = Path.of(name);
     }
 
-    public String getFileName() {
-        return fileName;
+    public Path getFilePath() {
+        return filePath;
     }
 }

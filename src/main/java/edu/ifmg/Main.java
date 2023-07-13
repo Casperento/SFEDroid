@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Main {
     private static Logger logger = LoggerFactory.getLogger(Logger.class);
@@ -59,8 +58,6 @@ public class Main {
 
         String sourceFilePath = cmd.getOptionValue("source-file");
         String outputFilePath = cmd.getOptionValue("output-file");
-        if (!outputFilePath.endsWith("/"))
-            outputFilePath += "/";
         String androidJar = cmd.getOptionValue("android-jars");
 
         logger.info("Source file path: " + sourceFilePath);
@@ -104,7 +101,7 @@ public class Main {
         // Printing callgraph's general inforamation into dot file
         logger.info("Printing call graph's general information into dot file...");
         StringBuilder fileData = new StringBuilder();
-        FileExport exportedFile = new FileExport("");
+        FileExport exportedFile = new FileExport();
         int index = 0;
         Edge edge = null;
         List<String> methodsSigs = null;
@@ -114,13 +111,13 @@ public class Main {
         String aux = "";
         List<String> edgesStrings = new ArrayList<>();
         for (SootClass sootClass : validClasses) {
-            exportedFile.setFileName(outputFilePath + sootClass.getName() + ".dot");
+            exportedFile.setFilePath(outputFilePath + sootClass.getName() + ".dot");
             fileData.append("digraph ").append(sootClass.getName().replaceAll("\\.","_")).append(" {\n");
             methods = sootClass.getMethods();
             methodsSigs = methods.stream().map(SootMethod::getSignature).toList();
             for (SootMethod sootMethod : methods) {
                 // Writing graph's nodes
-                fileData.append(index + " [label=\"" + sootMethod.getSignature() + "\"];\n");
+                fileData.append(index).append(" [label=\"").append(sootMethod.getSignature()).append("\"];\n");
                 // Writing graph's edges
                 for (Iterator<Edge> it = callGraph.edgesInto(sootMethod); it.hasNext(); ) {
                     edge = it.next();
@@ -144,7 +141,14 @@ public class Main {
             }
             index = 0;
             fileData.append("}");
-            exportedFile.export(fileData.toString());
+
+            try {
+                exportedFile.export(fileData.toString());
+            } catch (RuntimeException e) {
+                logger.error("File name not set before exporting data...");
+                e.printStackTrace();
+            }
+
             fileData.delete(0, fileData.length());
         }
     }
