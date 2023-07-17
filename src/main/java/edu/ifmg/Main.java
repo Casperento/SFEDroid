@@ -23,6 +23,7 @@ import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -111,7 +112,7 @@ public class Main {
         String aux = "";
         List<String> edgesStrings = new ArrayList<>();
         for (SootClass sootClass : validClasses) {
-            exportedFile.setFilePath(outputFilePath + sootClass.getName() + ".dot");
+            exportedFile.setFilePath(Path.of(outputFilePath, sootClass.getName(), ".dot"));
             fileData.append("digraph ").append(sootClass.getName().replaceAll("\\.","_")).append(" {\n");
             methods = sootClass.getMethods();
             methodsSigs = methods.stream().map(SootMethod::getSignature).toList();

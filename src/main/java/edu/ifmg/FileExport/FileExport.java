@@ -21,8 +21,8 @@ public class FileExport {
         }
     }
 
-    public void setFilePath(String name) {
-        this.filePath = Path.of(name);
+    public void setFilePath(Path fp) {
+        this.filePath = fp;
     }
 
     public Path getFilePath() {
