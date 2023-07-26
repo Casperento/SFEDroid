@@ -1,10 +1,10 @@
-package edu.ifmg.FileExport;
+package edu.ifmg.Utils;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class FileExport {
+public class FileHandler {
     private Path filePath = Path.of("");
     public void export(String data) throws RuntimeException {
         if (filePath.toString().equals("")) {

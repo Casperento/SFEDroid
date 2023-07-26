@@ -1,22 +1,18 @@
 package edu.ifmg;
 
-import edu.ifmg.FileExport.FileExport;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.cli.Options;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xmlpull.v1.XmlPullParserException;
+
+import edu.ifmg.Utils.Cli;
+import edu.ifmg.Utils.FileHandler;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
 import soot.jimple.infoflow.InfoflowConfiguration;
-import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
@@ -36,42 +32,22 @@ public class Main {
     private static Logger logger = LoggerFactory.getLogger(Logger.class);
 
     public static void main(String[] args) {
-        Options options = new Options();
-        Option sourceFile = new Option("i", "source-file", true, "source apk file");
-        sourceFile.setRequired(true);
-        options.addOption(sourceFile);
-        Option androidJarsPath = new Option("j", "android-jars", true, "path to android jars");
-        androidJarsPath.setRequired(true);
-        options.addOption(androidJarsPath);
-        Option callGraphAlg = new Option("c", "callgraph-alg", false, "callgraph algorithm: AUTO, CHA, VTA, RTA, (default) SPARK and GEOM");
-        options.addOption(callGraphAlg);
-        Option outputFile = new Option("o", "output-folder", false, "output folder to save '<package-name>/*.dot' files into");
-        options.addOption(outputFile);
-
-        CommandLineParser parser = new DefaultParser();
+        Cli cli = new Cli();
         HelpFormatter formatter = new HelpFormatter();
-        CommandLine cmd = null;
-
         try {
-            cmd = parser.parse(options, args);
-            if (cmd == null)
-                throw new ParseException("CLI parsing failed...");
+            cli.parse(args, logger);
         } catch (ParseException e) {
             logger.error(e.getMessage());
-            formatter.printHelp("SFEDroid", options);
+            formatter.printHelp("SFEDroid", cli.getOptions());
             System.exit(1);
         }
-
-        String sourceFilePath = cmd.getOptionValue("source-file");
-        String outputFilePath = cmd.getOptionValue("output-file");
-        String androidJar = cmd.getOptionValue("android-jars");
-
-        logger.info("Source file path: " + sourceFilePath);
+        logger.info("Source APK path: " + cli.getSourceFilePath());
+        logger.info("Android Jars path: " + cli.getAndroidJarPath());
 
         // Processing AndroidManifest.xml
         String packageName = "";
         try {
-            ProcessManifest manifest = new ProcessManifest(sourceFilePath);
+            ProcessManifest manifest = new ProcessManifest(cli.getSourceFilePath());
             packageName = manifest.getPackageName();
             logger.info("Package Name: " + packageName);
             manifest.close();
@@ -81,28 +57,11 @@ public class Main {
 
         // Configuring flowdroid options to generate Call Graphs
         final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
-        config.getAnalysisFileConfig().setTargetAPKFile(sourceFilePath);
-        config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
+        config.getAnalysisFileConfig().setTargetAPKFile(cli.getSourceFilePath());
+        config.getAnalysisFileConfig().setAndroidPlatformDir(cli.getAndroidJarPath());
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
-        
-        InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
-        if (callGraphAlg.toString().equalsIgnoreCase("AUTO"))
-            cgAlgorithm = CallgraphAlgorithm.AutomaticSelection;
-        else if (callGraphAlg.toString().equalsIgnoreCase("CHA"))
-            cgAlgorithm = CallgraphAlgorithm.CHA;
-        else if (callGraphAlg.toString().equalsIgnoreCase("VTA"))
-            cgAlgorithm = CallgraphAlgorithm.VTA;
-        else if (callGraphAlg.toString().equalsIgnoreCase("RTA"))
-            cgAlgorithm = CallgraphAlgorithm.RTA;
-        else if (callGraphAlg.toString().equalsIgnoreCase("SPARK"))
-            cgAlgorithm = CallgraphAlgorithm.SPARK;
-        else if (callGraphAlg.toString().equalsIgnoreCase("GEOM"))
-            cgAlgorithm = CallgraphAlgorithm.GEOM;
-        else {
-            logger.warn("Callgraph algorithm not found. Setting default one (SPARK)...");
-        }
-        config.setCallgraphAlgorithm(cgAlgorithm);
+        config.setCallgraphAlgorithm(cli.getCgAlgorithm());
 
         // Setting up application
         SetupApplication app = new SetupApplication(config);
@@ -124,7 +83,7 @@ public class Main {
         // Printing callgraph's general inforamation into dot file
         logger.info("Printing call graph's general information into dot file...");
         StringBuilder fileData = new StringBuilder();
-        FileExport exportedFile = new FileExport();
+        FileHandler exportedFile = new FileHandler();
         int index = 0;
         Edge edge = null;
         List<String> methodsSigs = null;
@@ -145,13 +104,13 @@ public class Main {
         
         for (SootClass sootClass : validClasses) {
             // Format parentDir and fileName
-            if (outputFilePath == null) {
+            if (cli.getOutputFilePath() == null) {
                 logger.warn("Output folder not found. Setting current user's folder as the output folder...");
 
                 parentDir = Path.of(homePath, packageName);
                 fileName = new File(parentDir.toString(), sootClass.getName() + ".dot");
             } else {
-                parentDir = Path.of(outputFilePath, packageName);
+                parentDir = Path.of(cli.getOutputFilePath(), packageName);
                 fileName = new File(parentDir.toString(), sootClass.getName() + ".dot");
             }
 
