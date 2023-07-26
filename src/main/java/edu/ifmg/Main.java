@@ -22,11 +22,14 @@ import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 public class Main {
     private static Logger logger = LoggerFactory.getLogger(Logger.class);
@@ -57,6 +60,12 @@ public class Main {
             System.exit(1);
         }
 
+        if (cmd == null) {
+            logger.error("CLI failed...");
+            formatter.printHelp("SFEDroid", options);
+            System.exit(1);
+        }
+
         String sourceFilePath = cmd.getOptionValue("source-file");
         String outputFilePath = cmd.getOptionValue("output-file");
         String androidJar = cmd.getOptionValue("android-jars");
@@ -69,6 +78,7 @@ public class Main {
             ProcessManifest manifest = new ProcessManifest(sourceFilePath);
             packageName = manifest.getPackageName();
             logger.info("Package Name: " + packageName);
+            manifest.close();
         } catch (IOException | XmlPullParserException e) {
             e.printStackTrace();
         }
@@ -110,9 +120,26 @@ public class Main {
         String sourceSignature = null;
         String targetSignature = null;
         String aux = "";
+        File fileName = null;
+        Path parentDir = null;
         List<String> edgesStrings = new ArrayList<>();
+        Map<String, String> env = System.getenv();
         for (SootClass sootClass : validClasses) {
-            exportedFile.setFilePath(Path.of(outputFilePath, sootClass.getName(), ".dot"));
+            // Format parentDir and fileName
+            if (outputFilePath == null) {
+                parentDir = Path.of(env.get("HOME"), packageName);
+                fileName = new File(parentDir.toString(), sootClass.getName() + ".dot");
+            } else {
+                parentDir = Path.of(outputFilePath, packageName);
+                fileName = new File(parentDir.toString(), sootClass.getName() + ".dot");
+            }
+
+            // Check and creation of output folder
+            if (!Files.exists(parentDir))
+                parentDir.toFile().mkdir();
+
+            exportedFile.setFilePath(fileName.toPath());
+
             fileData.append("digraph ").append(sootClass.getName().replaceAll("\\.","_")).append(" {\n");
             methods = sootClass.getMethods();
             methodsSigs = methods.stream().map(SootMethod::getSignature).toList();
