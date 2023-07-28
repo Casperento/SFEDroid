@@ -99,7 +99,7 @@ public class Cli {
         return cgAlgorithm;
     }
 
-    public void concatOutputFilePath(String path) {
+    public void updateOutputFilePath(String path) {
         this.outputFilePath = Path.of(outputFilePath, path).toString();
     }
 
