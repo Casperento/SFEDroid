@@ -1,5 +1,8 @@
 package edu.ifmg.Utils;
 
+import java.nio.file.Path;
+import java.util.Map;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -7,20 +10,29 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
 
 public class Cli {
+    private static Logger logger = LoggerFactory.getLogger(Logger.class);
     private final Options options = new Options();
     private final CommandLineParser parser = new DefaultParser();
     private CommandLine cmd = null;
-    private String sourceFilePath = "";
-    private String outputFilePath = "";
-    private String androidJarPath = "";
+    private String sourceFilePath = new String();
+    private String outputFilePath = new String();
+    private String androidJarPath = new String();
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
+    private String homePath = new String();
 
     public Cli() {
+        Map<String, String> env = System.getenv();
+        if (System.getProperty("os.name").startsWith("Windows"))
+            homePath = env.get("USERPROFILE");
+        else
+            homePath = env.get("HOME");
+
         Option sourceFile = new Option("i", "source-file", true, "source apk file");
         sourceFile.setRequired(true);
         options.addOption(sourceFile);
@@ -29,23 +41,25 @@ public class Cli {
         androidJarsPath.setRequired(true);
         options.addOption(androidJarsPath);
         
-        Option outputFile = new Option("o", "output-folder", true, "output folder to save '<package-name>/*.dot' files into (current user folder is the default one)");
+        Option outputFile = new Option("o", "output-folder", true, "output folder to save exported files related to the apk being analyzed");
         outputFile.setOptionalArg(true);
         options.addOption(outputFile);
         
-        Option callGraphAlg = new Option("c", "callgraph-alg", false, "callgraph algorithm: AUTO, CHA, VTA, RTA, (default) SPARK and GEOM");
+        Option callGraphAlg = new Option("c", "callgraph-alg", true, "callgraph algorithm: AUTO, CHA, VTA, RTA, (default) SPARK and GEOM");
         callGraphAlg.setOptionalArg(true);
         options.addOption(callGraphAlg);
     }
 
-    public void parse(String[] args, Logger logger) throws ParseException {
+    public void parse(String[] args) throws ParseException {
         cmd = parser.parse(options, args);
         
         sourceFilePath = cmd.getOptionValue("source-file");
-        outputFilePath = cmd.getOptionValue("output-folder");
         androidJarPath = cmd.getOptionValue("android-jars");
+        outputFilePath = cmd.getOptionValue("output-folder");
+        if (outputFilePath == null)
+            outputFilePath = homePath;
+        
         String cgAlgorithmOpt = cmd.getOptionValue("callgraph-alg");
-
         if (cgAlgorithmOpt != null) {
             if (cgAlgorithmOpt.toString().equalsIgnoreCase("AUTO"))
                 cgAlgorithm = CallgraphAlgorithm.AutomaticSelection;
@@ -83,6 +97,10 @@ public class Cli {
 
     public InfoflowConfiguration.CallgraphAlgorithm getCgAlgorithm() {
         return cgAlgorithm;
+    }
+
+    public void concatOutputFilePath(String path) {
+        this.outputFilePath = Path.of(outputFilePath, path).toString();
     }
 
 }
