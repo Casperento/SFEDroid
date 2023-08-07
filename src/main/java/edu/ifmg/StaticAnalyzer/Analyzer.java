@@ -27,7 +27,7 @@ public class Analyzer {
     private final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
     private String outputFolder = new String();
     private CallGraph callGraph = null;
-    private Map<SootMethod, SootMethod> callGraphEdges = new HashMap<>();
+    private Map<SootMethod, List<SootMethod>> callGraphEdges = new HashMap<>();
     private List<SootClass> validClasses = new ArrayList<>();
     private String pkgName = new String();
     private String mainActivityClassName = new String();
@@ -61,17 +61,18 @@ public class Analyzer {
         FileHandler exportedFile = new FileHandler();
 
         exportedFile.setFilePath(outputFolder, String.format("%s.dot", pkgName));
-        fileData.append(String.format("digraph %s {\nnode [style=filled];", pkgName.replaceAll("\\.","_")));
+        fileData.append(String.format("digraph %s {\nnode [style=filled];\n", pkgName.replaceAll("\\.","_")));
 
         // Traverse callgraph edges' mapping and write output dot
         Map<SootMethod, Integer> keyIndex = new HashMap<>();
         int i = 0;
         String activityColor = " fontcolor=black, color=cornflowerblue fillcolor=cornflowerblue];\n";
         String methodName = new String();
-        SootMethod child = null, parent = null;
+        List<SootMethod> parents = null;
+        SootMethod child = null;
         for (SootMethod key : callGraphEdges.keySet()) {
             child = key;
-            parent = callGraphEdges.get(child);
+            parents = callGraphEdges.get(child);
             
             if (!keyIndex.keySet().contains(key)) {
                 methodName = String.format("%s.%s", child.getDeclaringClass().getShortName(), child.getName());
@@ -80,26 +81,31 @@ public class Analyzer {
                 i++;
             }
             
-            if (!keyIndex.keySet().contains(parent)) {
-                methodName = String.format("%s.%s", parent.getDeclaringClass().getShortName(), parent.getName());
-                keyIndex.put(parent, i);
-                
-                if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
-                    fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
-                else {
-                    methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", pkgName));
-                    fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
+            for (SootMethod parent : parents) {
+                if (!keyIndex.keySet().contains(parent)) {
+                    methodName = String.format("%s.%s", parent.getDeclaringClass().getShortName(), parent.getName());
+                    keyIndex.put(parent, i);
+                    
+                    if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
+                        fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
+                    else {
+                        methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", pkgName));
+                        fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
+                    }
+                    
+                    i++;
                 }
-                
-                i++;
             }
         }
 
         int childInt = 0, parentInt = 0;
         for (SootMethod key : callGraphEdges.keySet()) {
             childInt = keyIndex.get(key);
-            parentInt = keyIndex.get(callGraphEdges.get(key));
-            fileData.append(String.format("%d -> %d ;\n", parentInt, childInt));
+            parents = callGraphEdges.get(key);
+            for (SootMethod parent : parents) {
+                parentInt = keyIndex.get(parent);
+                fileData.append(String.format("%d -> %d ;\n", parentInt, childInt));
+            }
         }
 
         fileData.append("}");
@@ -145,7 +151,15 @@ public class Analyzer {
                     if (!isValidEdge(edge))
                         continue;
                     SootMethod parentMethod = edge.src();
-                    callGraphEdges.put(sootMethod, parentMethod);
+                    // callGraphEdges.put(sootMethod, parentMethod);
+                    List<SootMethod> parents = new ArrayList<>();
+                    if (callGraphEdges.containsKey(sootMethod))
+                        parents = callGraphEdges.get(sootMethod);
+                    
+                    if (!parents.contains(parentMethod))
+                        parents.add(parentMethod);
+                    
+                    callGraphEdges.put(sootMethod, parents);
                 }
 
                 for (Iterator<Edge> it = callGraph.edgesOutOf(sootMethod); it.hasNext();) {
@@ -153,7 +167,15 @@ public class Analyzer {
                     if (!isValidEdge(edge))
                         continue;
                     SootMethod childMethod = edge.tgt();
-                    callGraphEdges.put(childMethod, sootMethod);
+                    // callGraphEdges.put(childMethod, sootMethod);
+                    List<SootMethod> parents = new ArrayList<>();
+                    if (callGraphEdges.containsKey(childMethod))
+                        parents = callGraphEdges.get(childMethod);
+                    
+                    if (!parents.contains(sootMethod))
+                        parents.add(sootMethod);
+                    
+                    callGraphEdges.put(childMethod, parents);
                 }
             }
         }
