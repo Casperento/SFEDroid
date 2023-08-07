@@ -1,34 +1,72 @@
 package edu.ifmg.StaticAnalyzer;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xmlpull.v1.XmlPullParserException;
 
+import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 
 public class Manifest {
     private static Logger logger = LoggerFactory.getLogger(Logger.class);
-    private String packageName = "";
-    private String appPath = "";
+    private Path appPath = null;
+    private String fileName = new String();
+    private ProcessManifest manifest = null;
+    private String mainEntryPointSig = new String();
 
     public Manifest(String path) {
-        appPath = path;
+        appPath = Path.of(path);
     }
 
     public void process() throws IOException, XmlPullParserException {
-        ProcessManifest manifest = new ProcessManifest(appPath);
-        packageName = manifest.getPackageName();
-        logger.info("Package Name: " + packageName);
-        manifest.close();
+        manifest = new ProcessManifest(appPath.toString());
+        fileName = manifest.getPackageName();
+        if (fileName == null)
+            fileName = appPath.getFileName().toString();
+        logger.info(String.format("Package Name: %s", fileName));
+
+        // Getting 'android.intent.action.MAIN' activity
+        for (AXmlNode activity : manifest.getAllActivities()) {
+            if (activity.getChildren() == null)
+               continue;
+            for (AXmlNode child : activity.getChildren()) {
+                if (child.getTag().equals("intent-filter")) {
+                    for (AXmlNode sChild : child.getChildren()) {
+                        if (sChild.getAttribute("name").getValue().equals("android.intent.action.MAIN")) {
+                            mainEntryPointSig = (String) activity.getAttribute("name").getValue();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public String getPackageName() {
-        return packageName;
+        return fileName;
     }
 
-    public void setPackageName(String packageName) {
-        this.packageName = packageName;
+    public Set<String> getPermissions() {
+        return manifest.getPermissions();
+    }
+
+    public int getMinSdkVersion() {
+        return manifest.getMinSdkVersion();
+    }
+
+    public int getTargetSdkVersion() {
+        return manifest.getTargetSdkVersion();
+    }
+
+    public void close() {
+        manifest.close();
+    }
+
+    public String getMainEntryPointSig() {
+        return mainEntryPointSig;
     }
 
 }

@@ -37,7 +37,6 @@ public class Main {
             manifestHandler.process();
         } catch (IOException | XmlPullParserException e) {
             logger.error(e.getMessage());
-            e.printStackTrace();
             System.exit(1);
         }
         
@@ -45,12 +44,14 @@ public class Main {
         logger.info(String.format("Output path: %s", cli.getOutputFilePath()));
         Path parentDir = Path.of(cli.getOutputFilePath());
         if (!Files.exists(parentDir)) {
-            logger.info("Creating new folder for the app being analyzed...");
+            logger.info("Creating new output folder for the app under analysis...");
             parentDir.toFile().mkdir();
         }
         
-        Analyzer analyzer = new Analyzer(cli.getSourceFilePath(), cli.getAndroidJarPath(), cli.getOutputFilePath(), cli.getCgAlgorithm());
-        analyzer.buildCallgraph();
-        analyzer.exportCallgraph(manifestHandler.getPackageName());
+        Analyzer analyzer = new Analyzer(cli.getSourceFilePath(), cli.getAndroidJarPath(), cli.getOutputFilePath(), cli.getCgAlgorithm(), manifestHandler.getPackageName());
+        analyzer.buildCallgraph(manifestHandler.getMainEntryPointSig());
+        analyzer.exportCallgraph();
+
+        manifestHandler.close();
     }
 }

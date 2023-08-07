@@ -2,12 +2,14 @@ package edu.ifmg.StaticAnalyzer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xmlpull.v1.XmlPullParserException;
 
 import edu.ifmg.Utils.Files.FileHandler;
 import soot.Scene;
@@ -24,9 +26,17 @@ public class Analyzer {
     private SetupApplication app = null;
     private final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
     private String outputFolder = new String();
+    private CallGraph callGraph = null;
+    private Map<SootMethod, SootMethod> callGraphEdges = new HashMap<>();
+    private List<SootClass> validClasses = new ArrayList<>();
+    private String pkgName = new String();
+    private String mainActivityClassName = new String();
+    private String mainActivityEntryPointSig = new String();
+    private SootMethod mainActivityEntryPointMethod = null;
     
-    public Analyzer(String sourceApk, String androidJars, String outputPath, InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm) {
+    public Analyzer(String sourceApk, String androidJars, String outputPath, InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm, String packageName) {
         outputFolder = outputPath;
+        pkgName = packageName;
         
         // Configuring flowdroid options to generate Call Graphs
         config.getAnalysisFileConfig().setTargetAPKFile(sourceApk);
@@ -39,30 +49,69 @@ public class Analyzer {
         app = new SetupApplication(config);
     }
 
-    public void exportCallgraph(String pkgName) {
-        CallGraph callGraph = null;
-        try {
-            callGraph = Scene.v().getCallGraph();
-        } catch (RuntimeException e) {
-            logger.error("Call graph not found...");
+    public void exportCallgraph() {
+        if (callGraph == null) {
+            logger.error("Call graph not built yet...");
             return;
         }
 
         // Printing callgraph's general inforamation into dot file
-        int index = 0;
-        Edge edge = null;
-        List<String> methodsSigs = null;
-        List<SootMethod> methods = null;
-        String sourceSignature = null;
-        String targetSignature = null;
-        String aux = "";
-        List<String> edgesStrings = new ArrayList<>();
         logger.info("Printing call graph's general information into dot file...");
         StringBuilder fileData = new StringBuilder();
         FileHandler exportedFile = new FileHandler();
 
-        // Listing valid classes to generate dot file
-        List<SootClass> validClasses = new ArrayList<>();
+        exportedFile.setFilePath(outputFolder, String.format("%s.dot", pkgName));
+        fileData.append(String.format("digraph %s {\nnode [style=filled];", pkgName.replaceAll("\\.","_")));
+
+        // Traverse callgraph edges' mapping and write output dot
+        Map<SootMethod, Integer> keyIndex = new HashMap<>();
+        int i = 0;
+        String activityColor = " fontcolor=black, color=cornflowerblue fillcolor=cornflowerblue];\n";
+        String methodName = new String();
+        SootMethod child = null, parent = null;
+        for (SootMethod key : callGraphEdges.keySet()) {
+            child = key;
+            parent = callGraphEdges.get(child);
+            
+            if (!keyIndex.keySet().contains(key)) {
+                methodName = String.format("%s.%s", child.getDeclaringClass().getShortName(), child.getName());
+                fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
+                keyIndex.put(key, i);
+                i++;
+            }
+            
+            if (!keyIndex.keySet().contains(parent)) {
+                methodName = String.format("%s.%s", parent.getDeclaringClass().getShortName(), parent.getName());
+                keyIndex.put(parent, i);
+                
+                if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
+                    fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
+                else {
+                    methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", pkgName));
+                    fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
+                }
+                
+                i++;
+            }
+        }
+
+        int childInt = 0, parentInt = 0;
+        for (SootMethod key : callGraphEdges.keySet()) {
+            childInt = keyIndex.get(key);
+            parentInt = keyIndex.get(callGraphEdges.get(key));
+            fileData.append(String.format("%d -> %d ;\n", parentInt, childInt));
+        }
+
+        fileData.append("}");
+
+        try {
+            exportedFile.export(fileData.toString());
+        } catch (IOException e) {
+            logger.error("File name not set before exporting data...");
+        }
+    }
+
+    private List<SootClass> getValidClasses() {
         for (SootClass sootClass : Scene.v().getApplicationClasses()) {
             if (!sootClass.getName().contains(pkgName))
                 continue;
@@ -70,51 +119,74 @@ public class Analyzer {
                 continue;
             validClasses.add(sootClass);
         }
-        for (SootClass sootClass : validClasses) {
-            exportedFile.setFilePath(outputFolder, String.format("%s.dot", sootClass.getName()));
-            
-            fileData.append("digraph ").append(sootClass.getName().replaceAll("\\.","_")).append(" {\n");
-            methods = sootClass.getMethods();
-            methodsSigs = methods.stream().map(SootMethod::getSignature).toList();
-            for (SootMethod sootMethod : methods) {
-                // Writing graph's nodes
-                fileData.append(index).append(" [label=\"").append(sootMethod.getSignature()).append("\"];\n");
-                // Writing graph's edges
-                for (Iterator<Edge> it = callGraph.edgesInto(sootMethod); it.hasNext(); ) {
-                    edge = it.next();
-                    sourceSignature = edge.src().getSignature();
-                    aux = methodsSigs.indexOf(sourceSignature) + " -> " + index + ";\n";
-                    if (methodsSigs.contains(sourceSignature) && !edgesStrings.contains(aux)) {
-                        fileData.append(aux);
-                        edgesStrings.add(aux);
-                    }
-                }
-                for (Iterator<Edge> it = callGraph.edgesOutOf(sootMethod); it.hasNext(); ) {
-                    edge = it.next();
-                    targetSignature = edge.tgt().getSignature();
-                    aux = index + " -> " + methodsSigs.indexOf(targetSignature) + ";\n";
-                    if (methodsSigs.contains(targetSignature) && !edgesStrings.contains(aux)) {
-                        fileData.append(aux);
-                        edgesStrings.add(aux);
-                    }
-                }
-                index++;
-            }
-            index = 0;
-            fileData.append("}");
-
-            try {
-                exportedFile.export(fileData.toString());
-            } catch (IOException e) {
-                logger.error("File name not set before exporting data...");
-                e.printStackTrace();
-            }
-
-            fileData.delete(0, fileData.length());
-        }
+        return validClasses;
     }
 
-    public void buildCallgraph() {
+    public void buildCallgraph(String mainEntryPointClassName) {
         app.constructCallgraph();
+        
+        try {
+            callGraph = Scene.v().getCallGraph();
+        } catch (RuntimeException e) {
+            logger.error("Call graph not built correctly...");
+            return;
+        }
+
+        // Listing valid classes to generate edges' mapping
+        validClasses = getValidClasses();
+
+        for (SootClass sootClass : validClasses) {
+            for (SootMethod sootMethod : sootClass.getMethods()) {
+                if (!isValidMethod(sootMethod))
+                    continue;
+                
+                for (Iterator<Edge> it = callGraph.edgesInto(sootMethod); it.hasNext();) {
+                    Edge edge = it.next();
+                    if (!isValidEdge(edge))
+                        continue;
+                    SootMethod parentMethod = edge.src();
+                    callGraphEdges.put(sootMethod, parentMethod);
+                }
+
+                for (Iterator<Edge> it = callGraph.edgesOutOf(sootMethod); it.hasNext();) {
+                    Edge edge = it.next();
+                    if (!isValidEdge(edge))
+                        continue;
+                    SootMethod childMethod = edge.tgt();
+                    callGraphEdges.put(childMethod, sootMethod);
+                }
+            }
+        }
+        
+        // Getting mainActivity info.
+        mainActivityClassName = mainEntryPointClassName;
+        for (SootMethod sootMethod : app.getDummyMainMethod().getDeclaringClass().getMethods()) {
+            if (sootMethod.getReturnType().toString().equals(mainActivityClassName)) {
+                mainActivityEntryPointSig = sootMethod.getSignature();
+                mainActivityEntryPointMethod = sootMethod;
+            }
+        }
+
     }
+
+    private boolean isValidMethod(SootMethod sootMethod) {
+        if (sootMethod.getName().equals("<init>") || sootMethod.getName().equals("<clinit>"))
+            return false;
+        if (sootMethod.getDeclaringClass().getName().startsWith("android.") || sootMethod.getDeclaringClass().getName().startsWith("com.google.android") || sootMethod.getDeclaringClass().getName().startsWith("androidx."))
+            return false;
+        if (sootMethod.getDeclaringClass().getPackageName().startsWith("java"))
+            return false;
+        if (sootMethod.getName().equals("dummyMainMethod"))
+            return false;
+        return true;
+    }
+
+    private boolean isValidEdge(Edge edge) {
+        if (!edge.src().getDeclaringClass().isApplicationClass())
+            return false;
+        if (!isValidMethod(edge.src()) || !isValidMethod(edge.tgt()))
+            return false;
+        return validClasses.contains(edge.src().getDeclaringClass()) || validClasses.contains(edge.tgt().getDeclaringClass());
+    }
+
 }
