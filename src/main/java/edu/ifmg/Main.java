@@ -16,7 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Main {
-    private static Logger logger = LoggerFactory.getLogger(Logger.class);
+    private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
         Cli cli = new Cli();
@@ -30,6 +30,7 @@ public class Main {
         }
         logger.info(String.format("Source APK path: %s", cli.getSourceFilePath()));
         logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
+        logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
 
         // Processing AndroidManifest.xml
         Manifest manifestHandler = new Manifest(cli.getSourceFilePath());
@@ -48,9 +49,12 @@ public class Main {
             parentDir.toFile().mkdir();
         }
         
-        Analyzer analyzer = new Analyzer(cli.getSourceFilePath(), cli.getAndroidJarPath(), cli.getOutputFilePath(), cli.getCgAlgorithm(), manifestHandler.getPackageName());
+        Analyzer analyzer = new Analyzer(cli.getSourceFilePath(), cli.getAndroidJarPath(), cli.getOutputFilePath(), cli.getCgAlgorithm(), manifestHandler.getPackageName(), cli.getAdditionalClassPath());
         analyzer.buildCallgraph(manifestHandler.getMainEntryPointSig());
-        analyzer.exportCallgraph();
+        
+        if (cli.getExportCallGraph()) {
+            analyzer.exportCallgraph();
+        }
 
         manifestHandler.close();
     }

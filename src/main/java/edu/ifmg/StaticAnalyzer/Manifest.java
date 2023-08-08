@@ -12,7 +12,7 @@ import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 
 public class Manifest {
-    private static Logger logger = LoggerFactory.getLogger(Logger.class);
+    private static final Logger logger = LoggerFactory.getLogger(Manifest.class);
     private Path appPath = null;
     private String fileName = new String();
     private ProcessManifest manifest = null;
@@ -36,7 +36,7 @@ public class Manifest {
             for (AXmlNode child : activity.getChildren()) {
                 if (child.getTag().equals("intent-filter")) {
                     for (AXmlNode sChild : child.getChildren()) {
-                        if (sChild.getAttribute("name").getValue().equals("android.intent.action.MAIN")) {
+                        if (sChild.getAttribute("name") != null && sChild.getAttribute("name").getValue().equals("android.intent.action.MAIN")) {
                             mainEntryPointSig = (String) activity.getAttribute("name").getValue();
                         }
                     }

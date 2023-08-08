@@ -16,13 +16,15 @@ import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
 
 public class Cli {
-    private static Logger logger = LoggerFactory.getLogger(Logger.class);
+    private static final Logger logger = LoggerFactory.getLogger(Cli.class);
     private final Options options = new Options();
     private final CommandLineParser parser = new DefaultParser();
     private CommandLine cmd = null;
     private String sourceFilePath = new String();
     private String outputFilePath = new String();
     private String androidJarPath = new String();
+    private String additionalClassPath = new String();
+    private Boolean exportCallGraph = false;
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
     private String homePath = new String();
 
@@ -48,6 +50,14 @@ public class Cli {
         Option callGraphAlg = new Option("c", "callgraph-alg", true, "callgraph algorithm: AUTO, CHA, VTA, RTA, (default) SPARK and GEOM");
         callGraphAlg.setOptionalArg(true);
         options.addOption(callGraphAlg);
+
+        Option additionalClasspath = new Option("ac", "additional-classpath", true, "path to add into soot's classpath (separated by ':' or ';')");
+        callGraphAlg.setOptionalArg(true);
+        options.addOption(additionalClasspath);
+
+        Option exportCg = new Option("e", "export-callgraph", false, "export callgraph as DOT file");
+        exportCg.setOptionalArg(true);
+        options.addOption(exportCg);
     }
 
     public void parse(String[] args) throws ParseException {
@@ -55,6 +65,8 @@ public class Cli {
         
         sourceFilePath = cmd.getOptionValue("source-file");
         androidJarPath = cmd.getOptionValue("android-jars");
+        additionalClassPath = cmd.getOptionValue("additional-classpath");
+        exportCallGraph = cmd.hasOption("export-callgraph");
         outputFilePath = cmd.getOptionValue("output-folder");
         if (outputFilePath == null)
             outputFilePath = homePath;
@@ -77,6 +89,14 @@ public class Cli {
                 logger.warn("Callgraph algorithm not found. Setting default one (SPARK)...");
             }
         }
+    }
+
+    public Boolean getExportCallGraph() {
+        return exportCallGraph;
+    }
+
+    public String getAdditionalClassPath() {
+        return additionalClassPath;
     }
 
     public String getSourceFilePath() {

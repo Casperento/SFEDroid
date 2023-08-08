@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileHandler {
-    private static Logger logger = LoggerFactory.getLogger(Logger.class);
+    private static final Logger logger = LoggerFactory.getLogger(FileHandler.class);
     private File filePath = null;
 
     public void export(String data) throws IOException {
@@ -26,4 +26,9 @@ public class FileHandler {
         logger.info(String.format("Files are being exported into: %s", outputPath));
         filePath = new File(outputPath, fileName);
     }
+
+    public File getFilePath() {
+        return filePath;
+    }
+    
 }

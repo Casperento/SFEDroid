@@ -22,7 +22,7 @@ import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 
 public class Analyzer {
-    private static Logger logger = LoggerFactory.getLogger(Logger.class);
+    private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
     private SetupApplication app = null;
     private final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
     private String outputFolder = new String();
@@ -34,13 +34,14 @@ public class Analyzer {
     private String mainActivityEntryPointSig = new String();
     private SootMethod mainActivityEntryPointMethod = null;
     
-    public Analyzer(String sourceApk, String androidJars, String outputPath, InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm, String packageName) {
+    public Analyzer(String sourceApk, String androidJars, String outputPath, InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm, String packageName, String additionalClasspath) {
         outputFolder = outputPath;
         pkgName = packageName;
         
         // Configuring flowdroid options to generate Call Graphs
         config.getAnalysisFileConfig().setTargetAPKFile(sourceApk);
         config.getAnalysisFileConfig().setAndroidPlatformDir(androidJars);
+        config.getAnalysisFileConfig().setAdditionalClasspath(additionalClasspath);
         config.setCallgraphAlgorithm(cgAlgorithm);
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
@@ -56,11 +57,11 @@ public class Analyzer {
         }
 
         // Printing callgraph's general inforamation into dot file
-        logger.info("Printing call graph's general information into dot file...");
         StringBuilder fileData = new StringBuilder();
         FileHandler exportedFile = new FileHandler();
-
-        exportedFile.setFilePath(outputFolder, String.format("%s.dot", pkgName));
+        String dotName = String.format("%s.dot", pkgName);
+        exportedFile.setFilePath(outputFolder, dotName);
+        logger.info(String.format("Printing app's call graph into: %s...", exportedFile.getFilePath().toString()));
         fileData.append(String.format("digraph %s {\nnode [style=filled];\n", pkgName.replaceAll("\\.","_")));
 
         // Traverse callgraph edges' mapping and write output dot
@@ -119,8 +120,6 @@ public class Analyzer {
 
     private List<SootClass> getValidClasses() {
         for (SootClass sootClass : Scene.v().getApplicationClasses()) {
-            if (!sootClass.getName().contains(pkgName))
-                continue;
             if (sootClass.getName().contains(pkgName + ".R") || sootClass.getName().contains(pkgName + ".BuildConfig"))
                 continue;
             validClasses.add(sootClass);
