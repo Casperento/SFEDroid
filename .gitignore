@@ -37,5 +37,9 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### Soot ###
+### Soot/FlowDroid ###
 sootOutput/
+SourcesAndSinks.txt
+
+### SFEDroid ###
+src/main/resources/logs/sfedroid-console-*.log

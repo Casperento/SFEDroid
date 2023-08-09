@@ -24,6 +24,7 @@ public class Cli {
     private String outputFilePath = new String();
     private String androidJarPath = new String();
     private String additionalClassPath = new String();
+    private String permissionsMapping = new String();
     private Boolean exportCallGraph = false;
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
     private String homePath = new String();
@@ -38,6 +39,10 @@ public class Cli {
         Option sourceFile = new Option("i", "source-file", true, "source apk file");
         sourceFile.setRequired(true);
         options.addOption(sourceFile);
+
+        Option permissionsMap = new Option("p", "permissions-mapping", true, "permissions' mapping input file");
+        permissionsMap.setRequired(true);
+        options.addOption(permissionsMap);
         
         Option androidJarsPath = new Option("j", "android-jars", true, "path to android jars");
         androidJarsPath.setRequired(true);
@@ -67,6 +72,7 @@ public class Cli {
         androidJarPath = cmd.getOptionValue("android-jars");
         additionalClassPath = cmd.getOptionValue("additional-classpath");
         exportCallGraph = cmd.hasOption("export-callgraph");
+        permissionsMapping = cmd.getOptionValue("permissions-mapping");
         outputFilePath = cmd.getOptionValue("output-folder");
         if (outputFilePath == null)
             outputFilePath = homePath;
@@ -89,6 +95,10 @@ public class Cli {
                 logger.warn("Callgraph algorithm not found. Setting default one (SPARK)...");
             }
         }
+    }
+
+    public String getPermissionsMapping() {
+        return permissionsMapping;
     }
 
     public Boolean getExportCallGraph() {
