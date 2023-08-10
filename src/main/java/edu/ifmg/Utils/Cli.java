@@ -25,7 +25,7 @@ public class Cli {
     private String additionalClassPath = new String();
     private String permissionsMappingFolder = new String();
     private Boolean exportCallGraph = false;
-    private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
+    private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.CHA;
     private String homePath = new String();
     private static Cli instance;
 
@@ -41,7 +41,7 @@ public class Cli {
         options.addOption(sourceFile);
 
         Option permissionsMap = new Option("p", "permissions-mapping", true, "permissions' mapping input file");
-        permissionsMap.setRequired(true);
+        permissionsMap.setOptionalArg(true);
         options.addOption(permissionsMap);
         
         Option androidJarsPath = new Option("j", "android-jars", true, "path to android jars");
@@ -52,7 +52,7 @@ public class Cli {
         outputFile.setOptionalArg(true);
         options.addOption(outputFile);
         
-        Option callGraphAlg = new Option("c", "callgraph-alg", true, "callgraph algorithm: AUTO, CHA, VTA, RTA, (default) SPARK and GEOM");
+        Option callGraphAlg = new Option("c", "callgraph-alg", true, "callgraph algorithm: AUTO, CHA, VTA, RTA, SPARK or GEOM");
         callGraphAlg.setOptionalArg(true);
         options.addOption(callGraphAlg);
 
@@ -77,7 +77,10 @@ public class Cli {
         sourceFilePath = cmd.getOptionValue("source-file");
         additionalClassPath = cmd.getOptionValue("additional-classpath");
         exportCallGraph = cmd.hasOption("export-callgraph");
+
         permissionsMappingFolder = cmd.getOptionValue("permissions-mapping");
+        if (permissionsMappingFolder == null)
+            permissionsMappingFolder = "axplorer/permissions";
 
         androidJarPath = cmd.getOptionValue("android-jars");
         if (androidJarPath == null)
@@ -91,8 +94,6 @@ public class Cli {
         if (cgAlgorithmOpt != null) {
             if (cgAlgorithmOpt.equalsIgnoreCase("AUTO"))
                 cgAlgorithm = CallgraphAlgorithm.AutomaticSelection;
-            else if (cgAlgorithmOpt.equalsIgnoreCase("CHA"))
-                cgAlgorithm = CallgraphAlgorithm.CHA;
             else if (cgAlgorithmOpt.equalsIgnoreCase("VTA"))
                 cgAlgorithm = CallgraphAlgorithm.VTA;
             else if (cgAlgorithmOpt.equalsIgnoreCase("RTA"))
@@ -102,7 +103,7 @@ public class Cli {
             else if (cgAlgorithmOpt.equalsIgnoreCase("GEOM"))
                 cgAlgorithm = CallgraphAlgorithm.GEOM;
             else {
-                logger.warn("Callgraph algorithm not found. Setting default one (SPARK)...");
+                logger.warn("Callgraph algorithm not found. Setting default one (CHA)...");
             }
         }
     }
