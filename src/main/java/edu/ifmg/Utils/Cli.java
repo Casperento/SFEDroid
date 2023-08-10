@@ -46,7 +46,7 @@ public class Cli {
         options.addOption(permissionsMap);
         
         Option androidJarsPath = new Option("j", "android-jars", true, "path to android jars");
-        androidJarsPath.setRequired(true);
+        androidJarsPath.setOptionalArg(true);
         options.addOption(androidJarsPath);
         
         Option outputFile = new Option("o", "output-folder", true, "output folder to save exported files related to the apk being analyzed");
@@ -76,27 +76,31 @@ public class Cli {
         cmd = parser.parse(options, args);
         
         sourceFilePath = cmd.getOptionValue("source-file");
-        androidJarPath = cmd.getOptionValue("android-jars");
         additionalClassPath = cmd.getOptionValue("additional-classpath");
         exportCallGraph = cmd.hasOption("export-callgraph");
         permissionsMappingFolder = cmd.getOptionValue("permissions-mapping");
+
+        androidJarPath = cmd.getOptionValue("android-jars");
+        if (androidJarPath == null)
+            androidJarPath = "android-platforms";
+
         outputFilePath = cmd.getOptionValue("output-folder");
         if (outputFilePath == null)
             outputFilePath = homePath;
         
         String cgAlgorithmOpt = cmd.getOptionValue("callgraph-alg");
         if (cgAlgorithmOpt != null) {
-            if (cgAlgorithmOpt.toString().equalsIgnoreCase("AUTO"))
+            if (cgAlgorithmOpt.equalsIgnoreCase("AUTO"))
                 cgAlgorithm = CallgraphAlgorithm.AutomaticSelection;
-            else if (cgAlgorithmOpt.toString().equalsIgnoreCase("CHA"))
+            else if (cgAlgorithmOpt.equalsIgnoreCase("CHA"))
                 cgAlgorithm = CallgraphAlgorithm.CHA;
-            else if (cgAlgorithmOpt.toString().equalsIgnoreCase("VTA"))
+            else if (cgAlgorithmOpt.equalsIgnoreCase("VTA"))
                 cgAlgorithm = CallgraphAlgorithm.VTA;
-            else if (cgAlgorithmOpt.toString().equalsIgnoreCase("RTA"))
+            else if (cgAlgorithmOpt.equalsIgnoreCase("RTA"))
                 cgAlgorithm = CallgraphAlgorithm.RTA;
-            else if (cgAlgorithmOpt.toString().equalsIgnoreCase("SPARK"))
+            else if (cgAlgorithmOpt.equalsIgnoreCase("SPARK"))
                 cgAlgorithm = CallgraphAlgorithm.SPARK;
-            else if (cgAlgorithmOpt.toString().equalsIgnoreCase("GEOM"))
+            else if (cgAlgorithmOpt.equalsIgnoreCase("GEOM"))
                 cgAlgorithm = CallgraphAlgorithm.GEOM;
             else {
                 logger.warn("Callgraph algorithm not found. Setting default one (SPARK)...");

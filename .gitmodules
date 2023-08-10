@@ -1,3 +1,6 @@
 [submodule "axplorer"]
 	path = axplorer
 	url = https://github.com/reddr/axplorer.git
+[submodule "android-platforms"]
+	path = android-platforms
+	url = https://github.com/Sable/android-platforms.git

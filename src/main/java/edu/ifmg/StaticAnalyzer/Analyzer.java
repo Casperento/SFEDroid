@@ -65,12 +65,17 @@ public class Analyzer {
 
         // Setting and creating output folder
         outputFolder = Path.of(cli.getOutputFilePath(), manifestHandler.getPackageName()).toString();
-        logger.info(String.format("Output path: %s", outputFolder));
         Path parentDir = Path.of(cli.getOutputFilePath());
         if (!Files.exists(parentDir)) {
             logger.info("Creating new output folder for the app under analysis...");
             parentDir.toFile().mkdir();
         }
+
+        logger.info(String.format("Source APK path: %s", cli.getSourceFilePath()));
+        logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
+        logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
+        logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
+        logger.info(String.format("Output path: %s", outputFolder));
 
         // Getting app's meta-data
         mainEntryPointClassName = manifestHandler.getMainEntryPointSig();

@@ -24,11 +24,6 @@ public class Main {
             System.exit(1);
         }
 
-        logger.info(String.format("Source APK path: %s", cli.getSourceFilePath()));
-        logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
-        logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
-        logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
-
         PermissionsMapper mapper = PermissionsMapper.getInstance(cli.getPermissionsMappingFolder());
         Analyzer analyzer = new Analyzer();
         analyzer.analyze();
