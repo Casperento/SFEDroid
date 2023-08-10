@@ -15,6 +15,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
+import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
@@ -25,6 +26,9 @@ import soot.jimple.toolkits.callgraph.ReachableMethods;
 
 public class Analyzer {
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
+    private String minSdkVersion;
+    private Set<String> permissions;
+    private String targetSdkVersion;
     private SetupApplication app;
     private final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
     private String outputFolder;
@@ -37,6 +41,8 @@ public class Analyzer {
     private SootMethod mainActivityEntryPointMethod = null;
     private ReachableMethods reachableMethods;
     private boolean hasError = false;
+    private String mainEntryPointClassName;
+    private Set<Stmt> collectedSinks;
 
     public Analyzer() {
         Cli cli = Cli.getInstance();
@@ -56,21 +62,24 @@ public class Analyzer {
             hasError = true;
             return;
         }
-        cli.updateOutputFilePath(manifestHandler.getPackageName());
-        logger.info(String.format("Output path: %s", cli.getOutputFilePath()));
+
+        // Setting and creating output folder
+        outputFolder = Path.of(cli.getOutputFilePath(), manifestHandler.getPackageName()).toString();
+        logger.info(String.format("Output path: %s", outputFolder));
         Path parentDir = Path.of(cli.getOutputFilePath());
         if (!Files.exists(parentDir)) {
             logger.info("Creating new output folder for the app under analysis...");
             parentDir.toFile().mkdir();
         }
 
-        String targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
-        String minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
-        Set<String> permissions = manifestHandler.getPermissions();
-
-        outputFolder = cli.getOutputFilePath();
+        // Getting app's meta-data
+        mainEntryPointClassName = manifestHandler.getMainEntryPointSig();
+        targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
+        minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
+        permissions = manifestHandler.getPermissions();
         pkgName = manifestHandler.getPackageName();
-        
+        manifestHandler.close();
+
         // Configuring flowdroid options to generate Call Graphs
         config.getAnalysisFileConfig().setTargetAPKFile(cli.getSourceFilePath());
         config.getAnalysisFileConfig().setAndroidPlatformDir(cli.getAndroidJarPath());
@@ -83,9 +92,7 @@ public class Analyzer {
         // Setting up application
         app = new SetupApplication(config);
 
-        manifestHandler.close();
-
-        // Copying SourcesAndSinks.txt file from soot-infoflow-android
+        // Copying SourcesAndSinks.txt file from soot-infoflow-android jar
         try {
             InputStream sourcesSinksFile = ResourceUtils.getResourceStream("/SourcesAndSinks.txt");
             byte[] bytes = sourcesSinksFile.readAllBytes();
@@ -96,75 +103,11 @@ public class Analyzer {
         } catch (IOException | RuntimeException e) {
             logger.error(e.getMessage());
             hasError = true;
-            return;
         }
     }
 
-    public void exportCallgraph() {
-        if (callGraph == null) {
-            logger.error("Cannot export null call graph...");
-            return;
-        }
-
-        // Printing callgraph's general inforamation into dot file
-        StringBuilder fileData = new StringBuilder();
-        String dotName = String.format("%s.dot", pkgName);
-
-        logger.info(String.format("Printing app's call graph into: %s...", outputFolder));
-        fileData.append(String.format("digraph %s {\nnode [style=filled];\n", pkgName.replaceAll("\\.","_")));
-
-        // Traverse callgraph edges' mapping and write output dot
-        Map<SootMethod, Integer> keyIndex = new HashMap<>();
-        int i = 0;
-        String activityColor = " fontcolor=black, color=cornflowerblue fillcolor=cornflowerblue];\n";
-        String methodName;
-        List<SootMethod> parents = null;
-        SootMethod child = null;
-        for (SootMethod key : callGraphEdges.keySet()) {
-            child = key;
-            parents = callGraphEdges.get(child);
-            
-            if (!keyIndex.containsKey(key)) {
-                methodName = String.format("%s.%s", child.getDeclaringClass().getShortName(), child.getName());
-                fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
-                keyIndex.put(key, i);
-                i++;
-            }
-            
-            for (SootMethod parent : parents) {
-                if (!keyIndex.containsKey(parent)) {
-                    methodName = String.format("%s.%s", parent.getDeclaringClass().getShortName(), parent.getName());
-                    keyIndex.put(parent, i);
-                    
-                    if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
-                        fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
-                    else {
-                        methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", pkgName));
-                        fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
-                    }
-                    
-                    i++;
-                }
-            }
-        }
-
-        int childInt = 0, parentInt = 0;
-        for (SootMethod key : callGraphEdges.keySet()) {
-            childInt = keyIndex.get(key);
-            parents = callGraphEdges.get(key);
-            for (SootMethod parent : parents) {
-                parentInt = keyIndex.get(parent);
-                fileData.append(String.format("%d -> %d ;\n", parentInt, childInt));
-            }
-        }
-
-        fileData.append("}");
-
-        try {
-            FileHandler.exportFile(String.valueOf(fileData), outputFolder, dotName);
-        } catch (IOException e) {
-            logger.error("File not found...");
-        }
+    public boolean hasError() {
+        return hasError;
     }
 
     private List<SootClass> getValidClasses() {
@@ -176,19 +119,18 @@ public class Analyzer {
         return validClasses;
     }
 
-    public void buildCallgraph(String mainEntryPointClassName) {
-//        app.constructCallgraph();
+    public void analyze() {
         try {
             app.runInfoflow("SourcesAndSinks.txt");
             callGraph = Scene.v().getCallGraph();
         } catch (IOException | RuntimeException | XmlPullParserException e) {
             logger.error(e.getMessage());
+            hasError = true;
             return;
         }
 
-//        reachableMethods = Scene.v().getReachableMethods();
-//        Boolean test = isMethodReachable("<package.ClassName: void methodName()>");
-//        Set<Stmt> sinks = app.getCollectedSinks();
+        reachableMethods = Scene.v().getReachableMethods();
+        collectedSinks = app.getCollectedSinks();
 
         // Listing valid classes to generate edges' mapping
         validClasses = getValidClasses();
@@ -206,10 +148,10 @@ public class Analyzer {
                     List<SootMethod> parents = new ArrayList<>();
                     if (callGraphEdges.containsKey(sootMethod))
                         parents = callGraphEdges.get(sootMethod);
-                    
+
                     if (!parents.contains(parentMethod))
                         parents.add(parentMethod);
-                    
+
                     callGraphEdges.put(sootMethod, parents);
                 }
 
@@ -221,15 +163,15 @@ public class Analyzer {
                     List<SootMethod> parents = new ArrayList<>();
                     if (callGraphEdges.containsKey(childMethod))
                         parents = callGraphEdges.get(childMethod);
-                    
+
                     if (!parents.contains(sootMethod))
                         parents.add(sootMethod);
-                    
+
                     callGraphEdges.put(childMethod, parents);
                 }
             }
         }
-        
+
         // Getting mainActivity info.
         mainActivityClassName = mainEntryPointClassName;
         for (SootMethod sootMethod : app.getDummyMainMethod().getDeclaringClass().getMethods()) {
@@ -238,7 +180,6 @@ public class Analyzer {
                 mainActivityEntryPointMethod = sootMethod;
             }
         }
-
     }
 
     public Boolean isMethodReachable(String signature) {
@@ -277,8 +218,71 @@ public class Analyzer {
         return validClasses.contains(edge.src().getDeclaringClass()) || validClasses.contains(edge.tgt().getDeclaringClass());
     }
 
-    public boolean hasError() {
-        return hasError;
+    public void exportCallgraph() {
+        if (callGraph == null) {
+            logger.error("Cannot export null call graph...");
+            return;
+        }
+
+        // Printing callgraph's general inforamation into dot file
+        StringBuilder fileData = new StringBuilder();
+        String dotName = String.format("%s.dot", pkgName);
+
+        logger.info(String.format("Printing app's call graph into: %s...", outputFolder));
+        fileData.append(String.format("digraph %s {\nnode [style=filled];\n", pkgName.replaceAll("\\.","_")));
+
+        // Traverse callgraph edges' mapping and write output dot
+        Map<SootMethod, Integer> keyIndex = new HashMap<>();
+        int i = 0;
+        String activityColor = " fontcolor=black, color=cornflowerblue fillcolor=cornflowerblue];\n";
+        String methodName;
+        List<SootMethod> parents = null;
+        SootMethod child = null;
+        for (SootMethod key : callGraphEdges.keySet()) {
+            child = key;
+            parents = callGraphEdges.get(child);
+
+            if (!keyIndex.containsKey(key)) {
+                methodName = String.format("%s.%s", child.getDeclaringClass().getShortName(), child.getName());
+                fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
+                keyIndex.put(key, i);
+                i++;
+            }
+
+            for (SootMethod parent : parents) {
+                if (!keyIndex.containsKey(parent)) {
+                    methodName = String.format("%s.%s", parent.getDeclaringClass().getShortName(), parent.getName());
+                    keyIndex.put(parent, i);
+
+                    if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
+                        fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
+                    else {
+                        methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", pkgName));
+                        fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
+                    }
+
+                    i++;
+                }
+            }
+        }
+
+        int childInt = 0, parentInt = 0;
+        for (SootMethod key : callGraphEdges.keySet()) {
+            childInt = keyIndex.get(key);
+            parents = callGraphEdges.get(key);
+            for (SootMethod parent : parents) {
+                parentInt = keyIndex.get(parent);
+                fileData.append(String.format("%d -> %d ;\n", parentInt, childInt));
+            }
+        }
+
+        fileData.append("}");
+
+        try {
+            FileHandler.exportFile(String.valueOf(fileData), outputFolder, dotName);
+        } catch (IOException e) {
+            logger.error("File not found...");
+        }
     }
 
 }

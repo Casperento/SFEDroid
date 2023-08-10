@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.ifmg.StaticAnalyzer.Analyzer;
-import edu.ifmg.StaticAnalyzer.Manifest;
 import edu.ifmg.Utils.Cli;
 
 public class Main {
@@ -32,8 +31,8 @@ public class Main {
 
         PermissionsMapper mapper = PermissionsMapper.getInstance(cli.getPermissionsMappingFolder());
         Analyzer analyzer = new Analyzer();
+        analyzer.analyze();
         if (!analyzer.hasError()) {
-            analyzer.buildCallgraph(Manifest.getInstance(cli.getSourceFilePath()).getMainEntryPointSig());
             if (cli.getExportCallGraph()) {
                 analyzer.exportCallgraph();
             }

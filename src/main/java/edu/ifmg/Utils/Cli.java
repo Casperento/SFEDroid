@@ -136,8 +136,4 @@ public class Cli {
         return cgAlgorithm;
     }
 
-    public void updateOutputFilePath(String path) {
-        this.outputFilePath = Path.of(outputFilePath, path).toString();
-    }
-
 }

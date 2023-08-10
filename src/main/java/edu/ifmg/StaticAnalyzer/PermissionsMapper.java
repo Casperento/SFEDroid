@@ -1,6 +1,5 @@
 package edu.ifmg.StaticAnalyzer;
 
-import edu.ifmg.Main;
 import edu.ifmg.Utils.Files.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
