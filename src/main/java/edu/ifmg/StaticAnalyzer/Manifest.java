@@ -17,9 +17,16 @@ public class Manifest {
     private String fileName = new String();
     private ProcessManifest manifest = null;
     private String mainEntryPointSig = new String();
+    private static Manifest instance;
 
-    public Manifest(String path) {
+    private Manifest(String path) {
         appPath = Path.of(path);
+    }
+
+    public static Manifest getInstance(String path) {
+        if (instance == null)
+            instance = new Manifest(path);
+        return instance;
     }
 
     public void process() throws IOException, XmlPullParserException {

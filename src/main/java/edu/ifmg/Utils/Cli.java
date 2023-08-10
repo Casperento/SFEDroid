@@ -28,8 +28,9 @@ public class Cli {
     private Boolean exportCallGraph = false;
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
     private String homePath = new String();
+    private static Cli instance;
 
-    public Cli() {
+    private Cli() {
         Map<String, String> env = System.getenv();
         if (System.getProperty("os.name").startsWith("Windows"))
             homePath = env.get("USERPROFILE");
@@ -63,6 +64,12 @@ public class Cli {
         Option exportCg = new Option("e", "export-callgraph", false, "export callgraph as DOT file");
         exportCg.setOptionalArg(true);
         options.addOption(exportCg);
+    }
+
+    public static Cli getInstance() {
+        if (instance == null)
+            instance = new Cli();
+        return  instance;
     }
 
     public void parse(String[] args) throws ParseException {

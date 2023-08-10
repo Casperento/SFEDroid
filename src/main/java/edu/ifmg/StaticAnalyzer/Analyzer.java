@@ -1,8 +1,11 @@
 package edu.ifmg.StaticAnalyzer;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
+import edu.ifmg.Utils.Cli;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,22 +36,54 @@ public class Analyzer {
     private String mainActivityEntryPointSig = new String();
     private SootMethod mainActivityEntryPointMethod = null;
     private ReachableMethods reachableMethods;
-    
-    public Analyzer(String sourceApk, String androidJars, String outputPath, InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm, String packageName, String additionalClasspath) {
-        outputFolder = outputPath;
-        pkgName = packageName;
+    private boolean hasError = false;
+
+    public Analyzer() {
+        Cli cli = Cli.getInstance();
+        Manifest manifestHandler = Manifest.getInstance(cli.getSourceFilePath());
+
+        if (manifestHandler == null) {
+            logger.error("Could not initialize the Analyzer...");
+            hasError = true;
+            return;
+        }
+
+        // Processing AndroidManifest.xml
+        try {
+            manifestHandler.process();
+        } catch (IOException | XmlPullParserException e) {
+            logger.error(e.getMessage());
+            hasError = true;
+            return;
+        }
+        cli.updateOutputFilePath(manifestHandler.getPackageName());
+        logger.info(String.format("Output path: %s", cli.getOutputFilePath()));
+        Path parentDir = Path.of(cli.getOutputFilePath());
+        if (!Files.exists(parentDir)) {
+            logger.info("Creating new output folder for the app under analysis...");
+            parentDir.toFile().mkdir();
+        }
+
+        String targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
+        String minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
+        Set<String> permissions = manifestHandler.getPermissions();
+
+        outputFolder = cli.getOutputFilePath();
+        pkgName = manifestHandler.getPackageName();
         
         // Configuring flowdroid options to generate Call Graphs
-        config.getAnalysisFileConfig().setTargetAPKFile(sourceApk);
-        config.getAnalysisFileConfig().setAndroidPlatformDir(androidJars);
-        config.getAnalysisFileConfig().setAdditionalClasspath(additionalClasspath);
+        config.getAnalysisFileConfig().setTargetAPKFile(cli.getSourceFilePath());
+        config.getAnalysisFileConfig().setAndroidPlatformDir(cli.getAndroidJarPath());
+        config.getAnalysisFileConfig().setAdditionalClasspath(cli.getAdditionalClassPath());
         config.setLogSourcesAndSinks(true);
-        config.setCallgraphAlgorithm(cgAlgorithm);
+        config.setCallgraphAlgorithm(cli.getCgAlgorithm());
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
 
         // Setting up application
         app = new SetupApplication(config);
+
+        manifestHandler.close();
 
         // Copying SourcesAndSinks.txt file from soot-infoflow-android
         try {
@@ -60,6 +95,8 @@ public class Analyzer {
             sourcesSinksFile.close();
         } catch (IOException | RuntimeException e) {
             logger.error(e.getMessage());
+            hasError = true;
+            return;
         }
     }
 
@@ -238,6 +275,10 @@ public class Analyzer {
         if (!isValidMethod(edge.src()) || !isValidMethod(edge.tgt()))
             return false;
         return validClasses.contains(edge.src().getDeclaringClass()) || validClasses.contains(edge.tgt().getDeclaringClass());
+    }
+
+    public boolean hasError() {
+        return hasError;
     }
 
 }
