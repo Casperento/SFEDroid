@@ -24,7 +24,7 @@ public class Cli {
     private String outputFilePath = new String();
     private String androidJarPath = new String();
     private String additionalClassPath = new String();
-    private String permissionsMapping = new String();
+    private String permissionsMappingFolder = new String();
     private Boolean exportCallGraph = false;
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.SPARK;
     private String homePath = new String();
@@ -72,7 +72,7 @@ public class Cli {
         androidJarPath = cmd.getOptionValue("android-jars");
         additionalClassPath = cmd.getOptionValue("additional-classpath");
         exportCallGraph = cmd.hasOption("export-callgraph");
-        permissionsMapping = cmd.getOptionValue("permissions-mapping");
+        permissionsMappingFolder = cmd.getOptionValue("permissions-mapping");
         outputFilePath = cmd.getOptionValue("output-folder");
         if (outputFilePath == null)
             outputFilePath = homePath;
@@ -97,8 +97,8 @@ public class Cli {
         }
     }
 
-    public String getPermissionsMapping() {
-        return permissionsMapping;
+    public String getPermissionsMappingFolder() {
+        return permissionsMappingFolder;
     }
 
     public Boolean getExportCallGraph() {
