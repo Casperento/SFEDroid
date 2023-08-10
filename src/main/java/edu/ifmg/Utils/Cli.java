@@ -1,6 +1,5 @@
 package edu.ifmg.Utils;
 
-import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;

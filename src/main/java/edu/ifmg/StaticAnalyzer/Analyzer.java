@@ -137,7 +137,21 @@ public class Analyzer {
         reachableMethods = Scene.v().getReachableMethods();
         collectedSinks = app.getCollectedSinks();
 
+        // Getting mainActivity info.
+        mainActivityClassName = mainEntryPointClassName;
+        for (SootMethod sootMethod : app.getDummyMainMethod().getDeclaringClass().getMethods()) {
+            if (sootMethod.getReturnType().toString().equals(mainActivityClassName)) {
+                mainActivityEntryPointSig = sootMethod.getSignature();
+                mainActivityEntryPointMethod = sootMethod;
+            }
+        }
+
         // Listing valid classes to generate edges' mapping
+        filterCallGraph();
+
+    }
+
+    private void filterCallGraph() {
         validClasses = getValidClasses();
 
         for (SootClass sootClass : validClasses) {
@@ -174,15 +188,6 @@ public class Analyzer {
 
                     callGraphEdges.put(childMethod, parents);
                 }
-            }
-        }
-
-        // Getting mainActivity info.
-        mainActivityClassName = mainEntryPointClassName;
-        for (SootMethod sootMethod : app.getDummyMainMethod().getDeclaringClass().getMethods()) {
-            if (sootMethod.getReturnType().toString().equals(mainActivityClassName)) {
-                mainActivityEntryPointSig = sootMethod.getSignature();
-                mainActivityEntryPointMethod = sootMethod;
             }
         }
     }
