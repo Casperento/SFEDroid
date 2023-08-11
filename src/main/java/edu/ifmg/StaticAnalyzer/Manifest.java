@@ -50,6 +50,7 @@ public class Manifest {
                 }
             }
         }
+        manifest.close();
     }
 
     public String getPackageName() {
@@ -66,10 +67,6 @@ public class Manifest {
 
     public int getTargetSdkVersion() {
         return manifest.getTargetSdkVersion();
-    }
-
-    public void close() {
-        manifest.close();
     }
 
     public String getMainEntryPointSig() {
