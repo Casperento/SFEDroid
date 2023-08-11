@@ -7,6 +7,12 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * FileHandler is a class used to import/export files from/to the disk.
+ *
+ * @author Casperento
+ *
+ */
 public class FileHandler {
     private static final Logger logger = LoggerFactory.getLogger(FileHandler.class);
 

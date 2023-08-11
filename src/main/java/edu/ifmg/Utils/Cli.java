@@ -14,6 +14,13 @@ import org.slf4j.LoggerFactory;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
 
+/**
+ * Cli is a facade class that handles Command-Line information before starting the static analysis. It's built upon
+ * Apache Commons CLI.
+ *
+ * @author Casperento
+ *
+ */
 public class Cli {
     private static final Logger logger = LoggerFactory.getLogger(Cli.class);
     private final Options options = new Options();

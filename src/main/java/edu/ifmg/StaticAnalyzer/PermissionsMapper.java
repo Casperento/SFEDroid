@@ -9,6 +9,13 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * PermissionsMapper is responsible for taking a permission-methods mapping (for now, axplorer) and mapping methods to
+ * permissions using SootMethods' signature syntax.
+ *
+ * @author Casperento
+ *
+ */
 public class PermissionsMapper {
     private static final Logger logger = LoggerFactory.getLogger(PermissionsMapper.class);
     private static PermissionsMapper instance;

@@ -11,6 +11,12 @@ import org.xmlpull.v1.XmlPullParserException;
 import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 
+/**
+ * Manifest is a Facade class to handle a sub-set of meta-data parsed by ProcessManifest.
+ *
+ * @author Casperento
+ *
+ */
 public class Manifest {
     private static final Logger logger = LoggerFactory.getLogger(Manifest.class);
     private Path appPath = null;

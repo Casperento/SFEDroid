@@ -24,6 +24,13 @@ import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
 
+/**
+ * Analyzer is the main class used to parse information from FlowDroid's CallGraph and Taint Analysis results. It works
+ * as a Facade to SetupApplication and Scene classes.
+ *
+ * @author Casperento
+ *
+ */
 public class Analyzer {
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
     private String minSdkVersion;
