@@ -72,10 +72,14 @@ public class Analyzer {
 
         // Setting and creating output folder
         outputFolder = Path.of(cli.getOutputFilePath(), manifestHandler.getPackageName()).toString();
-        Path parentDir = Path.of(cli.getOutputFilePath());
+        Path parentDir = Path.of(outputFolder);
         if (!Files.exists(parentDir)) {
             logger.info("Creating new output folder for the app under analysis...");
-            parentDir.toFile().mkdir();
+            if (!parentDir.toFile().mkdir()) {
+                logger.error(String.format("Failed when trying to create output folder: %s", outputFolder));
+                hasError = true;
+                return;
+            }
         }
 
         logger.info(String.format("Source APK path: %s", cli.getSourceFilePath()));
