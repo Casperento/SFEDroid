@@ -68,7 +68,7 @@ public class PermissionsMapper {
             matcher = permissionPattern.matcher(m);
             if (matcher.find()) {
                 perms = Arrays.asList(matcher.group(1).split(", "));
-                logger.debug(String.format("Permissions found: %s", perms.toString()));
+                // logger.debug(String.format("Permissions found: %s", perms.toString()));
             } else {
                 continue;
             }
@@ -78,7 +78,7 @@ public class PermissionsMapper {
                 args_ = matcher.group(3);
                 methodName = matcher.group(2);
                 declaringClass = matcher.group(1);
-                logger.debug(String.format("Signature found:<%s: %s %s%s>\n", declaringClass, returnType, methodName, args_));
+                // logger.debug(String.format("Signature found:<%s: %s %s%s>\n", declaringClass, returnType, methodName, args_));
                 methodSig = String.format("<%s: %s %s%s>", declaringClass, returnType, methodName, args_);
             } else {
                 continue;

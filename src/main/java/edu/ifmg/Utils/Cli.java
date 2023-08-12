@@ -2,6 +2,12 @@ package edu.ifmg.Utils;
 
 import java.util.Map;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -35,6 +41,7 @@ public class Cli {
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.CHA;
     private String homePath = new String();
     private static Cli instance;
+    private boolean logMode = false;
 
     private Cli() {
         Map<String, String> env = System.getenv();
@@ -70,6 +77,10 @@ public class Cli {
         Option exportCg = new Option("e", "export-callgraph", false, "export callgraph as DOT file");
         exportCg.setOptionalArg(true);
         options.addOption(exportCg);
+
+        Option logModeOption = new Option("l", "log-mode", false, "turn on logs and write it to console and disk ('/src/main/resources/logs')");
+        exportCg.setOptionalArg(true);
+        options.addOption(logModeOption);
     }
 
     public static Cli getInstance() {
@@ -84,6 +95,7 @@ public class Cli {
         sourceFilePath = cmd.getOptionValue("source-file");
         additionalClassPath = cmd.getOptionValue("additional-classpath");
         exportCallGraph = cmd.hasOption("export-callgraph");
+        logMode = cmd.hasOption("log-mode");
 
         permissionsMappingFolder = cmd.getOptionValue("permissions-mapping");
         if (permissionsMappingFolder == null)
@@ -113,6 +125,15 @@ public class Cli {
                 logger.warn("Callgraph algorithm not found. Setting default one (CHA)...");
             }
         }
+
+        if (logMode == false) {
+            LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+            Configuration config = ctx.getConfiguration();
+            LoggerConfig rootConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+            rootConfig.setLevel(Level.OFF);
+            ctx.updateLoggers();
+        }
+
     }
 
     public String getPermissionsMappingFolder() {
