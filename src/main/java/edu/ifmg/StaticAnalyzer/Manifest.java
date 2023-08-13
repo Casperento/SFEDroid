@@ -40,7 +40,6 @@ public class Manifest {
         fileName = manifest.getPackageName();
         if (fileName == null)
             fileName = appPath.getFileName().toString();
-        logger.info(String.format("Package Name: %s", fileName));
 
         // Getting 'android.intent.action.MAIN' activity
         for (AXmlNode activity : manifest.getAllActivities()) {

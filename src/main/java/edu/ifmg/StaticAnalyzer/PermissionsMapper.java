@@ -1,8 +1,9 @@
 package edu.ifmg.StaticAnalyzer;
 
-import edu.ifmg.Utils.Files.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.ifmg.Utils.FileHandler;
 
 import java.io.File;
 import java.util.*;

@@ -1,4 +1,4 @@
-package edu.ifmg.Utils.Files;
+package edu.ifmg.Utils;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -23,7 +23,8 @@ public class FileHandler {
             BufferedReader reader = new BufferedReader(new FileReader(inputPath));
             while (line != null) {
                 line = reader.readLine();
-                fileContent.add(line);
+                if (line != null && !line.isEmpty())
+                    fileContent.add(line);
             }
             reader.close();
         } catch (IOException e) {

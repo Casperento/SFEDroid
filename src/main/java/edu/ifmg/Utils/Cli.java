@@ -1,5 +1,8 @@
 package edu.ifmg.Utils;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.logging.log4j.Level;
@@ -33,6 +36,7 @@ public class Cli {
     private final CommandLineParser parser = new DefaultParser();
     private CommandLine cmd = null;
     private String sourceFilePath = new String();
+    private String inputListFilePath = new String();
     private String outputFilePath = new String();
     private String androidJarPath = new String();
     private String additionalClassPath = new String();
@@ -51,8 +55,12 @@ public class Cli {
             homePath = env.get("HOME");
 
         Option sourceFile = new Option("i", "source-file", true, "source apk file");
-        sourceFile.setRequired(true);
+        sourceFile.setOptionalArg(true);
         options.addOption(sourceFile);
+
+        Option inputListOption = new Option("l", "list-file", true, "a file containing a list of apks to analyze");
+        inputListOption.setOptionalArg(true);
+        options.addOption(inputListOption);
 
         Option permissionsMap = new Option("p", "permissions-mapping", true, "permissions' mapping input file");
         permissionsMap.setOptionalArg(true);
@@ -78,7 +86,7 @@ public class Cli {
         exportCg.setOptionalArg(true);
         options.addOption(exportCg);
 
-        Option logModeOption = new Option("l", "log-mode", false, "turn on logs and write it to console and disk ('/src/main/resources/logs')");
+        Option logModeOption = new Option("v", "verbose", false, "turn on logs and write it to console and disk ('/src/main/resources/logs')");
         exportCg.setOptionalArg(true);
         options.addOption(logModeOption);
     }
@@ -93,9 +101,24 @@ public class Cli {
         cmd = parser.parse(options, args);
         
         sourceFilePath = cmd.getOptionValue("source-file");
+        inputListFilePath = cmd.getOptionValue("list-file");
+
+        if (sourceFilePath == null && inputListFilePath == null)
+            throw new ParseException("You either need to specify an apk file or a txt file containing a list of apks to analyze...");
+
+        if (sourceFilePath != null && inputListFilePath != null)
+            throw new ParseException("Two kinds of input file provided, can't decide which one to consider in the analysis...");
+
+
+        if (sourceFilePath != null && !Files.exists(Path.of(sourceFilePath)))
+            throw new ParseException("Source file not found...");
+        
+        if (inputListFilePath != null && !Files.exists(Path.of(inputListFilePath)))
+            throw new ParseException("List file not found...");
+
         additionalClassPath = cmd.getOptionValue("additional-classpath");
         exportCallGraph = cmd.hasOption("export-callgraph");
-        logMode = cmd.hasOption("log-mode");
+        logMode = cmd.hasOption("verbose");
 
         permissionsMappingFolder = cmd.getOptionValue("permissions-mapping");
         if (permissionsMappingFolder == null)
@@ -134,6 +157,10 @@ public class Cli {
             ctx.updateLoggers();
         }
 
+    }
+
+    public String getInputListFilePath() {
+        return inputListFilePath;
     }
 
     public String getPermissionsMappingFolder() {

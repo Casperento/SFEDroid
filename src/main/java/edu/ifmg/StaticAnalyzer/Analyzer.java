@@ -6,11 +6,11 @@ import java.nio.file.Path;
 import java.util.*;
 
 import edu.ifmg.Utils.Cli;
+import edu.ifmg.Utils.FileHandler;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import edu.ifmg.Utils.Files.FileHandler;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.Scene;
 import soot.SootClass;
@@ -19,7 +19,6 @@ import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
-import soot.jimple.infoflow.android.source.parsers.xml.ResourceUtils;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
@@ -33,92 +32,34 @@ import soot.jimple.toolkits.callgraph.ReachableMethods;
  */
 public class Analyzer {
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
-    private String minSdkVersion;
-    private Set<String> permissions;
-    private String targetSdkVersion;
+
     private SetupApplication app;
     private final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
-    private String outputFolder;
     private CallGraph callGraph = null;
     private Map<SootMethod, List<SootMethod>> filteredCallGraph = new HashMap<>();
     private List<SootClass> validClasses = new ArrayList<>();
-    private String pkgName;
+    private Parameters params;
     private String mainActivityClassName = new String();
     private String mainActivityEntryPointSig = new String();
     private SootMethod mainActivityEntryPointMethod = null;
     private ReachableMethods reachableMethods;
     private boolean hasError = false;
-    private String mainEntryPointClassName;
     private Set<Stmt> collectedSinks;
 
-    public Analyzer() {
-        Cli cli = Cli.getInstance();
-        Manifest manifestHandler = Manifest.getInstance(cli.getSourceFilePath());
-
-        if (manifestHandler == null) {
-            logger.error("Could not initialize the Analyzer...");
-            hasError = true;
-            return;
-        }
-
-        // Processing AndroidManifest.xml
-        try {
-            manifestHandler.process();
-        } catch (IOException | XmlPullParserException e) {
-            logger.error(e.getMessage());
-            hasError = true;
-            return;
-        }
-
-        // Setting and creating output folder
-        outputFolder = Path.of(cli.getOutputFilePath(), manifestHandler.getPackageName()).toString();
-        Path parentDir = Path.of(outputFolder);
-        if (!Files.exists(parentDir)) {
-            logger.info("Creating new output folder for the app under analysis...");
-            if (!parentDir.toFile().mkdir()) {
-                logger.error(String.format("Failed when trying to create output folder: %s", outputFolder));
-                hasError = true;
-                return;
-            }
-        }
-
-        logger.info(String.format("Source APK path: %s", cli.getSourceFilePath()));
-        logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
-        logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
-        logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
-        logger.info(String.format("Output path: %s", outputFolder));
-
-        // Getting app's meta-data
-        mainEntryPointClassName = manifestHandler.getMainEntryPointSig();
-        targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
-        minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
-        permissions = manifestHandler.getPermissions();
-        pkgName = manifestHandler.getPackageName();
+    public Analyzer(Parameters p) {
+        params = p;
 
         // Configuring flowdroid options to generate Call Graphs
-        config.getAnalysisFileConfig().setTargetAPKFile(cli.getSourceFilePath());
-        config.getAnalysisFileConfig().setAndroidPlatformDir(cli.getAndroidJarPath());
-        config.getAnalysisFileConfig().setAdditionalClasspath(cli.getAdditionalClassPath());
+        config.getAnalysisFileConfig().setTargetAPKFile(params.getSourceFilePath());
+        config.getAnalysisFileConfig().setAndroidPlatformDir(params.getAndroidJarPath());
+        config.getAnalysisFileConfig().setAdditionalClasspath(params.getAdditionalClassPath());
+        config.setCallgraphAlgorithm(params.getCgAlgorithm());
         config.setLogSourcesAndSinks(true);
-        config.setCallgraphAlgorithm(cli.getCgAlgorithm());
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
 
         // Setting up application
         app = new SetupApplication(config);
-
-        // Copying SourcesAndSinks.txt file from soot-infoflow-android jar
-        try {
-            InputStream sourcesSinksFile = ResourceUtils.getResourceStream("/SourcesAndSinks.txt");
-            byte[] bytes = sourcesSinksFile.readAllBytes();
-            FileOutputStream file = new FileOutputStream("SourcesAndSinks.txt");
-            file.write(bytes);
-            file.close();
-            sourcesSinksFile.close();
-        } catch (IOException | RuntimeException e) {
-            logger.error(e.getMessage());
-            hasError = true;
-        }
     }
 
     public void analyze() {
@@ -134,8 +75,8 @@ public class Analyzer {
         reachableMethods = Scene.v().getReachableMethods();
         collectedSinks = app.getCollectedSinks();
 
-        // Getting mainActivity info.
-        mainActivityClassName = mainEntryPointClassName;
+        // Getting main Activity info.
+        mainActivityClassName = params.getMainEntryPointClassName();
         for (SootMethod sootMethod : app.getDummyMainMethod().getDeclaringClass().getMethods()) {
             if (sootMethod.getReturnType().toString().equals(mainActivityClassName)) {
                 mainActivityEntryPointSig = sootMethod.getSignature();
@@ -154,7 +95,7 @@ public class Analyzer {
 
     private List<SootClass> getValidClasses() {
         for (SootClass sootClass : Scene.v().getApplicationClasses()) {
-            if (sootClass.getName().contains(pkgName + ".R") || sootClass.getName().contains(pkgName + ".BuildConfig"))
+            if (sootClass.getName().contains(params.getPkgName() + ".R") || sootClass.getName().contains(params.getPkgName() + ".BuildConfig"))
                 continue;
             validClasses.add(sootClass);
         }
@@ -246,10 +187,10 @@ public class Analyzer {
 
         // Printing callgraph's general inforamation into dot file
         StringBuilder fileData = new StringBuilder();
-        String dotName = String.format("%s.dot", pkgName);
+        String dotName = String.format("%s.dot", params.getPkgName());
 
-        logger.info(String.format("Printing app's call graph into: %s...", outputFolder));
-        fileData.append(String.format("digraph %s {\nnode [style=filled];\n", pkgName.replaceAll("\\.","_")));
+        logger.info(String.format("Printing app's call graph into: %s...", params.getOutputFolderPath()));
+        fileData.append(String.format("digraph %s {\nnode [style=filled];\n", params.getPkgName().replaceAll("\\.","_")));
 
         // Traverse callgraph edges' mapping and write output dot
         Map<SootMethod, Integer> keyIndex = new HashMap<>();
@@ -277,7 +218,7 @@ public class Analyzer {
                     if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
                         fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
                     else {
-                        methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", pkgName));
+                        methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", params.getPkgName()));
                         fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
                     }
 
@@ -299,9 +240,9 @@ public class Analyzer {
         fileData.append("}");
 
         try {
-            FileHandler.exportFile(String.valueOf(fileData), outputFolder, dotName);
+            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFolderPath().toString(), dotName);
         } catch (IOException e) {
-            logger.error("File not found...");
+            logger.error(e.getMessage());
         }
     }
 
