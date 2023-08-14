@@ -59,7 +59,8 @@ public class Analyzer {
         config.setLogSourcesAndSinks(true);
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
-//        config.setEnableExceptionTracking(false); // exclude try-catch analysis
+//        config.setEnableExceptionTracking(false); // exclude try-catch from the analysis
+        config.setDataFlowTimeout(300);
 
         // Setting up application
         app = new SetupApplication(config);
