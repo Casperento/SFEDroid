@@ -243,7 +243,7 @@ public class Analyzer {
         fileData.append("}");
 
         try {
-            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFolderPath().toString(), dotName);
+            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFolderPath().toString(), Path.of(params.getSourceFilePath()).getFileName() + dotName);
         } catch (IOException e) {
             logger.error(e.getMessage());
         }

@@ -3,8 +3,10 @@ package edu.ifmg;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.cli.HelpFormatter;
@@ -52,15 +54,24 @@ public class Main {
 
         if (cli.getInputListFilePath() != null && !cli.getInputListFilePath().isEmpty()) {
             List<String> apks = FileHandler.importFile(cli.getInputListFilePath());
+            List<String> failed = new ArrayList<>();
             if (apks == null || apks.isEmpty()) {
                 logger.error("Input file is empty...");
                 System.exit(1);
             }
             int totalApks = apks.size(), i = 1;
             for (String apk : apks) {
-                logger.info(String.format("Analyzing sample (%d/%d): '%s'...", i++, totalApks, apk));
+                System.out.printf("Analyzing sample (%d/%d): '%s'...%n", i, totalApks, apk);
+                logger.info(String.format("Analyzing sample (%d/%d): '%s'...", i, totalApks, apk));
+                i++;
                 if (Files.exists(Path.of(apk))) {
                     Parameters p = new Parameters(cli, apk);
+                    if (p.hasError()) {
+                        System.out.printf("Failed to parse manifest file of '%s' file. Skipping...%n", apk);
+                        logger.warn(String.format("Failed to analyze '%s' file. Skipping...", apk));
+                        failed.add(apk);
+                        continue;
+                    }
                     Analyzer analyzer = new Analyzer(p);
                     analyzer.analyze();
                     if (!analyzer.hasError()) {
@@ -68,12 +79,17 @@ public class Main {
                             analyzer.exportCallgraph();
                         }
                     } else {
-                        logger.info(String.format("Failed to analyze '%s' file. Skipping...", apk));
+                        System.out.printf("Failed to analyze '%s' file. Skipping...%n", apk);
+                        logger.warn(String.format("File '%s' not found. Skipping...", apk));
+                        failed.add(apk);
                     }
                 } else {
-                    logger.info(String.format("File '%s' not found. Skipping...", apk));
+                    System.out.printf("File '%s' not found. Skipping...%n", apk);
+                    logger.warn(String.format("File '%s' not found. Skipping...", apk));
+                    failed.add(apk);
                 }
             }
+            System.out.printf("\nAnalysis results:\n\tTotal of APKs analyzed: %d\n\tTotal of SUCCESS: %d\n\tList of APKs that failed (Total: %d): %s", totalApks, totalApks-failed.size(), failed.size(), failed);
         } else {
             Parameters p = new Parameters(cli, cli.getSourceFilePath());
             Analyzer analyzer = new Analyzer(p);

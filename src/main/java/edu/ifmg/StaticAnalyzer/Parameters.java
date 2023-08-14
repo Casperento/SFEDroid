@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import com.esotericsoftware.kryo.util.Null;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xmlpull.v1.XmlPullParserException;
@@ -30,19 +31,21 @@ public class Parameters {
     private String androidJarPath;
     private String additionalClassPath;
     private CallgraphAlgorithm cgAlgorithm;
+    private boolean hasError = false;
     public Parameters(Cli cli, String inputFile) {
         sourceFilePath = inputFile;
         androidJarPath = cli.getAndroidJarPath();
         additionalClassPath = cli.getAdditionalClassPath();
         cgAlgorithm = cli.getCgAlgorithm();
 
-        Manifest manifestHandler = Manifest.getInstance(inputFile);
+        Manifest manifestHandler = new Manifest(inputFile);
 
         // Processing AndroidManifest.xml
         try {
             manifestHandler.process();
-        } catch (IOException | XmlPullParserException e) {
+        } catch (IOException | XmlPullParserException | NullPointerException e) {
             logger.error(e.getMessage());
+            hasError = true;
             return;
         }
 
@@ -63,15 +66,18 @@ public class Parameters {
         permissions = manifestHandler.getPermissions();
         pkgName = manifestHandler.getPackageName();
 
-        logger.info("Current Analysis Parameters:");
-        logger.info(String.format("Source APK path: %s", cli.getSourceFilePath()));
+        logger.info(String.format("Source APK path: %s", sourceFilePath));
         logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
         logger.info(String.format("Package Name: %s", pkgName));
         logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
         logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
         logger.info(String.format("Output path: %s", outputFolderPath.toString()));
     }
-    
+
+    public boolean hasError() {
+        return hasError;
+    }
+
     public String getSourceFilePath() {
         return sourceFilePath;
     }
