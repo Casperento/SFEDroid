@@ -43,7 +43,7 @@ public class Parameters {
         // Processing AndroidManifest.xml
         try {
             manifestHandler.process();
-        } catch (IOException | XmlPullParserException | NullPointerException e) {
+        } catch (RuntimeException | IOException | XmlPullParserException e) {
             logger.error(e.getMessage());
             hasError = true;
             return;
