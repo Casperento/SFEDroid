@@ -15,6 +15,7 @@ import org.xmlpull.v1.XmlPullParserException;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
+import soot.SootResolver;
 import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
@@ -22,6 +23,7 @@ import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
+import soot.options.Options;
 
 /**
  * Analyzer is the main class used to parse information from FlowDroid's CallGraph and Taint Analysis results. It works
@@ -34,7 +36,6 @@ public class Analyzer {
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
 
     private SetupApplication app;
-    private final InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
     private CallGraph callGraph = null;
     private Map<SootMethod, List<SootMethod>> filteredCallGraph = new HashMap<>();
     private List<SootClass> validClasses = new ArrayList<>();
@@ -50,6 +51,7 @@ public class Analyzer {
         params = p;
 
         // Configuring flowdroid options to generate Call Graphs
+        InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.getAnalysisFileConfig().setTargetAPKFile(params.getSourceFilePath());
         config.getAnalysisFileConfig().setAndroidPlatformDir(params.getAndroidJarPath());
         config.getAnalysisFileConfig().setAdditionalClasspath(params.getAdditionalClassPath());
@@ -57,6 +59,7 @@ public class Analyzer {
         config.setLogSourcesAndSinks(true);
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
+//        config.setEnableExceptionTracking(false); // exclude try-catch analysis
 
         // Setting up application
         app = new SetupApplication(config);

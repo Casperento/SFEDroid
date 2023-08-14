@@ -52,9 +52,13 @@ public class Main {
 
         if (cli.getInputListFilePath() != null && !cli.getInputListFilePath().isEmpty()) {
             List<String> apks = FileHandler.importFile(cli.getInputListFilePath());
+            if (apks == null || apks.isEmpty()) {
+                logger.error("Input file is empty...");
+                System.exit(1);
+            }
             int totalApks = apks.size(), i = 1;
             for (String apk : apks) {
-                logger.info(String.format("Analyzing sample (%d/%d): '%s'...", apk, i++, totalApks));
+                logger.info(String.format("Analyzing sample (%d/%d): '%s'...", i++, totalApks, apk));
                 if (Files.exists(Path.of(apk))) {
                     Parameters p = new Parameters(cli, apk);
                     Analyzer analyzer = new Analyzer(p);
@@ -64,9 +68,8 @@ public class Main {
                             analyzer.exportCallgraph();
                         }
                     } else {
-                        // System.exit(1);
+                        logger.info(String.format("Failed to analyze '%s' file. Skipping...", apk));
                     }
-                    
                 } else {
                     logger.info(String.format("File '%s' not found. Skipping...", apk));
                 }
