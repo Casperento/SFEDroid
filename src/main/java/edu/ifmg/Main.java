@@ -3,7 +3,6 @@ package edu.ifmg;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -68,7 +67,7 @@ public class Main {
                     Parameters p = new Parameters(cli, apk);
                     if (p.hasError()) {
                         System.out.printf("Failed to parse manifest file of '%s' file. Skipping...%n", apk);
-                        logger.warn(String.format("Failed to analyze '%s' file. Skipping...", apk));
+                        logger.warn(String.format("Failed to parse manifest file of '%s' file. Skipping...%n", apk));
                         failed.add(apk);
                         continue;
                     }
@@ -80,7 +79,7 @@ public class Main {
                         }
                     } else {
                         System.out.printf("Failed to analyze '%s' file. Skipping...%n", apk);
-                        logger.warn(String.format("File '%s' not found. Skipping...", apk));
+                        logger.warn(String.format("Failed to analyze '%s' file. Skipping...%n", apk));
                         failed.add(apk);
                     }
                 } else {

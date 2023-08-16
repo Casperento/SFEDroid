@@ -34,7 +34,6 @@ public class Parameters {
     private boolean hasError = false;
     public Parameters(Cli cli, String inputFile) {
         sourceFilePath = inputFile;
-        androidJarPath = cli.getAndroidJarPath();
         additionalClassPath = cli.getAdditionalClassPath();
         cgAlgorithm = cli.getCgAlgorithm();
 
@@ -60,18 +59,36 @@ public class Parameters {
         }
 
         // Getting app's meta-data
-        mainEntryPointClassName = manifestHandler.getMainEntryPointSig();
-        targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
-        minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
-        permissions = manifestHandler.getPermissions();
         pkgName = manifestHandler.getPackageName();
+        mainEntryPointClassName = manifestHandler.getMainEntryPointSig();
+        permissions = manifestHandler.getPermissions();
 
         logger.info(String.format("Source APK path: %s", sourceFilePath));
+        androidJarPath = cli.getAndroidJarPath();
+
+        targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
+//        if (targetSdkVersion.equals("-1")) {
+//            targetSdkVersion = "18";
+//            androidJarPath = Path.of(androidJarPath, "android-18/android.jar").toString(); // forces a specific .jar from the SDK
+//            logger.info("Target SDK version not defined. Setting to it 18...");
+//        } else {
+            logger.info(String.format("Target SDK version: %s", targetSdkVersion));
+//        }
+
+        minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
+//        if (minSdkVersion.equals("-1")) {
+//            minSdkVersion = "16";
+//            androidJarPath = Path.of(androidJarPath, "android-16/android.jar").toString(); // forces a specific .jar from the SDK
+//            logger.info("Min SDK version not defined. Setting to it 16...");
+//        } else {
+            logger.info(String.format("Min SDK version: %s", minSdkVersion));
+//        }
+
         logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
-        logger.info(String.format("Package Name: %s", pkgName));
         logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
-        logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
         logger.info(String.format("Output path: %s", outputFolderPath.toString()));
+        logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
+        logger.info(String.format("Package Name: %s", pkgName));
     }
 
     public boolean hasError() {

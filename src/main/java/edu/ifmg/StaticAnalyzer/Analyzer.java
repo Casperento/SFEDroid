@@ -20,6 +20,8 @@ import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.android.resources.ARSCFileParser;
+import soot.jimple.infoflow.config.IInfoflowConfig;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
@@ -53,14 +55,22 @@ public class Analyzer {
         // Configuring flowdroid options to generate Call Graphs
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.getAnalysisFileConfig().setTargetAPKFile(params.getSourceFilePath());
-        config.getAnalysisFileConfig().setAndroidPlatformDir(params.getAndroidJarPath());
         config.getAnalysisFileConfig().setAdditionalClasspath(params.getAdditionalClassPath());
         config.setCallgraphAlgorithm(params.getCgAlgorithm());
-        config.setLogSourcesAndSinks(true);
-        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableReflection(true);
+
+        config.getAnalysisFileConfig().setAndroidPlatformDir(params.getAndroidJarPath());
+
+        // Taint Analysis related settings
+        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
+        config.setLogSourcesAndSinks(true);
 //        config.setEnableExceptionTracking(false); // exclude try-catch from the analysis
-        config.setDataFlowTimeout(300);
+
+        // Timeout settings
+        int timeout = 60;
+        config.setDataFlowTimeout(timeout);
+        config.getCallbackConfig().setCallbackAnalysisTimeout(timeout);
+        config.getPathConfiguration().setPathReconstructionTimeout(timeout);
 
         // Setting up application
         app = new SetupApplication(config);
@@ -90,20 +100,6 @@ public class Analyzer {
 
         // Listing valid classes to generate edges' mapping
         filterCallGraph();
-
-    }
-
-    public boolean hasError() {
-        return hasError;
-    }
-
-    private List<SootClass> getValidClasses() {
-        for (SootClass sootClass : Scene.v().getApplicationClasses()) {
-            if (sootClass.getName().contains(params.getPkgName() + ".R") || sootClass.getName().contains(params.getPkgName() + ".BuildConfig"))
-                continue;
-            validClasses.add(sootClass);
-        }
-        return validClasses;
     }
 
     private void filterCallGraph() {
@@ -147,6 +143,10 @@ public class Analyzer {
         }
     }
 
+    public boolean hasError() {
+        return hasError;
+    }
+
     public Boolean isMethodReachable(String signature) {
         if (reachableMethods == null || reachableMethods.size() < 1) {
             logger.error("reachableMethods variable empty or not initialized...");
@@ -161,6 +161,15 @@ public class Analyzer {
             return false;
         }
         return reachableMethods.contains(method);
+    }
+
+    private List<SootClass> getValidClasses() {
+        for (SootClass sootClass : Scene.v().getApplicationClasses()) {
+            if (sootClass.getName().contains(params.getPkgName() + ".R") || sootClass.getName().contains(params.getPkgName() + ".BuildConfig"))
+                continue;
+            validClasses.add(sootClass);
+        }
+        return validClasses;
     }
 
     private boolean isValidMethod(SootMethod sootMethod) {
@@ -191,7 +200,6 @@ public class Analyzer {
 
         // Printing callgraph's general inforamation into dot file
         StringBuilder fileData = new StringBuilder();
-        String dotName = String.format("%s.dot", params.getPkgName());
 
         logger.info(String.format("Printing app's call graph into: %s...", params.getOutputFolderPath()));
         fileData.append(String.format("digraph %s {\nnode [style=filled];\n", params.getPkgName().replaceAll("\\.","_")));
@@ -244,7 +252,8 @@ public class Analyzer {
         fileData.append("}");
 
         try {
-            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFolderPath().toString(), Path.of(params.getSourceFilePath()).getFileName() + dotName);
+            String dotName = String.format("%s.dot", Path.of(params.getSourceFilePath()).getFileName());
+            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFolderPath().toString(),  dotName);
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
