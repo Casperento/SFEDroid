@@ -31,11 +31,13 @@ public class Parameters {
     private String androidJarPath;
     private String additionalClassPath;
     private CallgraphAlgorithm cgAlgorithm;
+    private Integer timeOut;
     private boolean hasError = false;
     public Parameters(Cli cli, String inputFile) {
         sourceFilePath = inputFile;
         additionalClassPath = cli.getAdditionalClassPath();
         cgAlgorithm = cli.getCgAlgorithm();
+        timeOut = cli.getTimeOut();
 
         Manifest manifestHandler = new Manifest(inputFile);
 
@@ -93,6 +95,10 @@ public class Parameters {
 
     public boolean hasError() {
         return hasError;
+    }
+
+    public Integer getTimeOut() {
+        return timeOut;
     }
 
     public String getSourceFilePath() {

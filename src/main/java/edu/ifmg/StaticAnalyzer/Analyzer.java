@@ -42,9 +42,6 @@ public class Analyzer {
     private Map<SootMethod, List<SootMethod>> filteredCallGraph = new HashMap<>();
     private List<SootClass> validClasses = new ArrayList<>();
     private Parameters params;
-    private String mainActivityClassName = new String();
-    private String mainActivityEntryPointSig = new String();
-    private SootMethod mainActivityEntryPointMethod = null;
     private ReachableMethods reachableMethods;
     private boolean hasError = false;
     private Set<Stmt> collectedSinks;
@@ -63,14 +60,18 @@ public class Analyzer {
 
         // Taint Analysis related settings
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
+//        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.PropagateConstants);
+//        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.RemoveSideEffectFreeCode);
         config.setLogSourcesAndSinks(true);
 //        config.setEnableExceptionTracking(false); // exclude try-catch from the analysis
 
         // Timeout settings
-        int timeout = 60;
-        config.setDataFlowTimeout(timeout);
-        config.getCallbackConfig().setCallbackAnalysisTimeout(timeout);
-        config.getPathConfiguration().setPathReconstructionTimeout(timeout);
+        if (params.getTimeOut() != null) {
+            int timeout = params.getTimeOut();
+            config.setDataFlowTimeout(timeout);
+            config.getCallbackConfig().setCallbackAnalysisTimeout(timeout);
+            config.getPathConfiguration().setPathReconstructionTimeout(timeout);
+        }
 
         // Setting up application
         app = new SetupApplication(config);
@@ -88,15 +89,6 @@ public class Analyzer {
 
         reachableMethods = Scene.v().getReachableMethods();
         collectedSinks = app.getCollectedSinks();
-
-        // Getting main Activity info.
-        mainActivityClassName = params.getMainEntryPointClassName();
-        for (SootMethod sootMethod : app.getDummyMainMethod().getDeclaringClass().getMethods()) {
-            if (sootMethod.getReturnType().toString().equals(mainActivityClassName)) {
-                mainActivityEntryPointSig = sootMethod.getSignature();
-                mainActivityEntryPointMethod = sootMethod;
-            }
-        }
 
         // Listing valid classes to generate edges' mapping
         filterCallGraph();
@@ -147,7 +139,23 @@ public class Analyzer {
         return hasError;
     }
 
-    public Boolean isMethodReachable(String signature) {
+    public List<String> listReachableMethods(PermissionsMapper mapper) {
+        List<String> reachable = new ArrayList<>();
+        for (String perm : params.getPermissions()) {
+            List<String> methods = mapper.getPermissionMethods().get(perm);
+            if (methods != null) {
+                for (String sig : methods) {
+                    if (isMethodReachable(sig)) {
+                        logger.info("Method reachable: " + sig);
+                        reachable.add(sig);
+                    }
+                }
+            }
+        }
+        return reachable;
+    }
+
+    private Boolean isMethodReachable(String signature) {
         if (reachableMethods == null || reachableMethods.size() < 1) {
             logger.error("reachableMethods variable empty or not initialized...");
             return false;
@@ -157,7 +165,6 @@ public class Analyzer {
         try {
             method = Scene.v().getMethod(signature);
         } catch (RuntimeException e) {
-            logger.error(e.getMessage());
             return false;
         }
         return reachableMethods.contains(method);

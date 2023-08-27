@@ -53,12 +53,11 @@ public class Main {
 
         if (cli.getInputListFilePath() != null && !cli.getInputListFilePath().isEmpty()) {
             List<String> apks = FileHandler.importFile(cli.getInputListFilePath());
-            List<String> failed = new ArrayList<>();
             if (apks == null || apks.isEmpty()) {
                 logger.error("Input file is empty...");
                 System.exit(1);
             }
-            int totalApks = apks.size(), i = 1;
+            int totalApks = apks.size(), i = 1, failed = 0;
             for (String apk : apks) {
                 System.out.printf("Analyzing sample (%d/%d): '%s'...%n", i, totalApks, apk);
                 logger.info(String.format("Analyzing sample (%d/%d): '%s'...", i, totalApks, apk));
@@ -68,32 +67,47 @@ public class Main {
                     if (p.hasError()) {
                         System.out.printf("Failed to parse manifest file of '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to parse manifest file of '%s' file. Skipping...%n", apk));
-                        failed.add(apk);
+                        failed++;
                         continue;
                     }
                     Analyzer analyzer = new Analyzer(p);
                     analyzer.analyze();
                     if (!analyzer.hasError()) {
+
+                        // Check for reachability of methods allowed by permissions
+                        List<String> methods = analyzer.listReachableMethods(mapper);
+                        if (methods.isEmpty())
+                            logger.info("No reachable methods found...");
+
                         if (cli.getExportCallGraph()) {
                             analyzer.exportCallgraph();
                         }
                     } else {
                         System.out.printf("Failed to analyze '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to analyze '%s' file. Skipping...%n", apk));
-                        failed.add(apk);
+                        failed++;
                     }
                 } else {
                     System.out.printf("File '%s' not found. Skipping...%n", apk);
                     logger.warn(String.format("File '%s' not found. Skipping...", apk));
-                    failed.add(apk);
+                    failed++;
                 }
             }
-            System.out.printf("\nAnalysis results:\n\tTotal of APKs analyzed: %d\n\tTotal of SUCCESS: %d\n\tList of APKs that failed (Total: %d): %s", totalApks, totalApks-failed.size(), failed.size(), failed);
+            System.out.printf("\nAnalysis results:\n" +
+                    "\tTotal of APKs analyzed: %d\n" +
+                    "\tTotal of SUCCESS: %d\n" +
+                    "\tTotal of SKIPPED: %d (%d%%)", totalApks, (totalApks-failed), failed, (100*failed/totalApks));
         } else {
             Parameters p = new Parameters(cli, cli.getSourceFilePath());
             Analyzer analyzer = new Analyzer(p);
             analyzer.analyze();
             if (!analyzer.hasError()) {
+
+                // Check for reachability of methods allowed by permissions
+                List<String> methods = analyzer.listReachableMethods(mapper);
+                if (methods.isEmpty())
+                    logger.info("No reachable methods found...");
+
                 if (cli.getExportCallGraph()) {
                     analyzer.exportCallgraph();
                 }

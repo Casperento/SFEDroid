@@ -1,6 +1,5 @@
 package edu.ifmg.Utils;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -41,9 +40,10 @@ public class Cli {
     private String androidJarPath = new String();
     private String additionalClassPath = new String();
     private String permissionsMappingFolder = new String();
+    private Integer timeOut = null;
     private Boolean exportCallGraph = false;
     private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.CHA;
-    private String homePath = new String();
+    private String homePath;
     private static Cli instance;
     private boolean logMode = false;
 
@@ -79,7 +79,7 @@ public class Cli {
         options.addOption(callGraphAlg);
 
         Option additionalClasspath = new Option("ac", "additional-classpath", true, "path to add into soot's classpath (separated by ':' or ';')");
-        callGraphAlg.setOptionalArg(true);
+        additionalClasspath.setOptionalArg(true);
         options.addOption(additionalClasspath);
 
         Option exportCg = new Option("e", "export-callgraph", false, "export callgraph as DOT file");
@@ -87,8 +87,12 @@ public class Cli {
         options.addOption(exportCg);
 
         Option logModeOption = new Option("v", "verbose", false, "turn on logs and write it to console and disk ('/src/main/resources/logs')");
-        exportCg.setOptionalArg(true);
+        logModeOption.setOptionalArg(true);
         options.addOption(logModeOption);
+
+        Option dataFlowAnalysisTimeout = new Option("t", "timeout", true, "set timeout in seconds to abort the taint analysis");
+        dataFlowAnalysisTimeout.setOptionalArg(true);
+        options.addOption(dataFlowAnalysisTimeout);
     }
 
     public static Cli getInstance() {
@@ -99,9 +103,11 @@ public class Cli {
 
     public void parse(String[] args) throws ParseException {
         cmd = parser.parse(options, args);
-        
         sourceFilePath = cmd.getOptionValue("source-file");
         inputListFilePath = cmd.getOptionValue("list-file");
+
+        if (cmd.getOptionValue("timeout") != null)
+            timeOut = Integer.valueOf(cmd.getOptionValue("timeout"));
 
         if (sourceFilePath == null && inputListFilePath == null)
             throw new ParseException("You either need to specify an apk file or a txt file containing a list of apks to analyze...");
@@ -149,7 +155,7 @@ public class Cli {
             }
         }
 
-        if (logMode == false) {
+        if (!logMode) {
             LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
             Configuration config = ctx.getConfiguration();
             LoggerConfig rootConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
@@ -157,6 +163,10 @@ public class Cli {
             ctx.updateLoggers();
         }
 
+    }
+
+    public Integer getTimeOut() {
+        return timeOut;
     }
 
     public String getInputListFilePath() {
