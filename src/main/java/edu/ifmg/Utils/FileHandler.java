@@ -46,5 +46,45 @@ public class FileHandler {
         outFile.write(bytes);
         outFile.close();
     }
-    
+
+    public static int getFileSize(String filePath) {
+        int fileSize = -1;
+        try {
+            FileInputStream fileInputStream = new FileInputStream(filePath);
+            fileSize = fileInputStream.available();
+            fileInputStream.close();
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return fileSize;
+    }
+
+    public static double getFileEntropy(String filePath) {
+        double entropy = 0.0;
+        try {
+            FileInputStream fileInputStream = new FileInputStream(filePath);
+            int fileSize = fileInputStream.available();
+            int[] byteFrequency = new int[256]; // Array to hold byte frequency
+
+            // Count the frequency of each byte value
+            int byteRead;
+            while ((byteRead = fileInputStream.read()) != -1) {
+                byteFrequency[byteRead]++;
+            }
+
+            // Calculate the entropy
+            for (int frequency : byteFrequency) {
+                if (frequency > 0) {
+                    double probability = (double) frequency / fileSize;
+                    entropy -= probability * (Math.log(probability) / Math.log(2));
+                }
+            }
+
+            fileInputStream.close();
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return entropy;
+    }
+
 }

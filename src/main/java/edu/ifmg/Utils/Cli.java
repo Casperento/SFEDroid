@@ -74,7 +74,7 @@ public class Cli {
         outputFile.setOptionalArg(true);
         options.addOption(outputFile);
         
-        Option callGraphAlg = new Option("c", "callgraph-alg", true, "callgraph algorithm: AUTO, CHA, VTA, RTA, SPARK or GEOM");
+        Option callGraphAlg = new Option("c", "callgraph-alg", true, "callgraph algorithm: AUTO, CHA (default), VTA, RTA, SPARK or GEOM");
         callGraphAlg.setOptionalArg(true);
         options.addOption(callGraphAlg);
 

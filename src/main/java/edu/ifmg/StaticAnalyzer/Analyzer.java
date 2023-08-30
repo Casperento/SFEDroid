@@ -1,11 +1,9 @@
 package edu.ifmg.StaticAnalyzer;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-import edu.ifmg.Utils.Cli;
 import edu.ifmg.Utils.FileHandler;
 
 import org.apache.commons.lang3.StringUtils;
@@ -15,17 +13,12 @@ import org.xmlpull.v1.XmlPullParserException;
 import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
-import soot.SootResolver;
-import soot.jimple.Stmt;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
-import soot.jimple.infoflow.android.resources.ARSCFileParser;
-import soot.jimple.infoflow.config.IInfoflowConfig;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.ReachableMethods;
-import soot.options.Options;
 
 /**
  * Analyzer is the main class used to parse information from FlowDroid's CallGraph and Taint Analysis results. It works
@@ -44,15 +37,17 @@ public class Analyzer {
     private Parameters params;
     private ReachableMethods reachableMethods;
     private boolean hasError = false;
-    private Set<Stmt> collectedSinks;
+    private List<String> reachable = new ArrayList<>();
 
     public Analyzer(Parameters p) {
         params = p;
+        String analysisResultsFile = Path.of(params.getOutputFolderPath().toString(), "analysis_results.xml").toString();
 
         // Configuring flowdroid options to generate Call Graphs
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.getAnalysisFileConfig().setTargetAPKFile(params.getSourceFilePath());
         config.getAnalysisFileConfig().setAdditionalClasspath(params.getAdditionalClassPath());
+        config.getAnalysisFileConfig().setOutputFile(analysisResultsFile); // file to write the analysis' results
         config.setCallgraphAlgorithm(params.getCgAlgorithm());
         config.setEnableReflection(true);
 
@@ -87,8 +82,9 @@ public class Analyzer {
             return;
         }
 
+        SourcesSinks sourceSinks = SourcesSinks.getInstance();
+        sourceSinks.setSinksDefinitions(app.getSinks());
         reachableMethods = Scene.v().getReachableMethods();
-        collectedSinks = app.getCollectedSinks();
 
         // Listing valid classes to generate edges' mapping
         filterCallGraph();
@@ -139,8 +135,7 @@ public class Analyzer {
         return hasError;
     }
 
-    public List<String> listReachableMethods(PermissionsMapper mapper) {
-        List<String> reachable = new ArrayList<>();
+    public void listReachableMethods(PermissionsMapper mapper) {
         for (String perm : params.getPermissions()) {
             List<String> methods = mapper.getPermissionMethods().get(perm);
             if (methods != null) {
@@ -152,7 +147,6 @@ public class Analyzer {
                 }
             }
         }
-        return reachable;
     }
 
     private Boolean isMethodReachable(String signature) {
@@ -266,4 +260,7 @@ public class Analyzer {
         }
     }
 
+    public List<String> getReachable() {
+        return reachable;
+    }
 }

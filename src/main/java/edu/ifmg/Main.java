@@ -5,9 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
+import edu.ifmg.StaticAnalyzer.SourcesSinks;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
@@ -44,12 +44,13 @@ public class Main {
         try {
             cli.parse(args);
         } catch (ParseException e) {
-            logger.error(e.getMessage());
             formatter.printHelp("SFEDroid", cli.getOptions());
+            logger.error(e.getMessage());
             System.exit(1);
         }
 
         PermissionsMapper mapper = PermissionsMapper.getInstance(cli.getPermissionsMappingFolder());
+        SourcesSinks sourcesSinks = SourcesSinks.getInstance();
 
         if (cli.getInputListFilePath() != null && !cli.getInputListFilePath().isEmpty()) {
             List<String> apks = FileHandler.importFile(cli.getInputListFilePath());
@@ -75,8 +76,9 @@ public class Main {
                     if (!analyzer.hasError()) {
 
                         // Check for reachability of methods allowed by permissions
-                        List<String> methods = analyzer.listReachableMethods(mapper);
-                        if (methods.isEmpty())
+                        analyzer.listReachableMethods(mapper);
+                        List<String> reachableMethods = analyzer.getReachable();
+                        if (reachableMethods.isEmpty())
                             logger.info("No reachable methods found...");
 
                         if (cli.getExportCallGraph()) {
@@ -104,13 +106,35 @@ public class Main {
             if (!analyzer.hasError()) {
 
                 // Check for reachability of methods allowed by permissions
-                List<String> methods = analyzer.listReachableMethods(mapper);
-                if (methods.isEmpty())
+                analyzer.listReachableMethods(mapper);
+                List<String> reachableMethods = analyzer.getReachable();
+                if (reachableMethods.isEmpty())
                     logger.info("No reachable methods found...");
 
                 if (cli.getExportCallGraph()) {
                     analyzer.exportCallgraph();
                 }
+
+                // Preparing features
+                HashSet<String> sourcesSinksMethodsSigs = sourcesSinks.getSinksMethodsSigs();
+                int apkSize = FileHandler.getFileSize(cli.getSourceFilePath());
+                double apkEntropy = FileHandler.getFileEntropy(cli.getSourceFilePath()); // TODO: calculate .dex entropy
+                Set<String> permissions = mapper.getPermissionMethods().keySet();
+
+                System.out.println("----------------------------------------------Feature-Set-----------------------------------------------");
+                System.out.printf("Label: %s\n", "1"); // 1: malware, 0: benign | TODO: cli option to set label
+                System.out.printf("Package name: %s\n", p.getPkgName());
+                System.out.printf("MinSdkVersion: %s\n", p.getMinSdkVersion());
+                System.out.printf("TargetSdkVersion: %s\n", p.getTargetSdkVersion());
+                System.out.printf("File size: %d\n", apkSize);
+                System.out.printf("File entropy: %.2f\n", apkEntropy);
+                System.out.printf("Number of permissions mapped: %d\n", permissions.size());
+                System.out.printf("Number of reachable methods: %d\n", reachableMethods.size());
+                System.out.printf("Number of sink methods loaded by FlowDroid: %d\n", sourcesSinksMethodsSigs.size()); // TODO: read found leanks and match against loaded sinks
+                System.out.println("--------------------------------------------------------------------------------------------------------");
+
+                // TODO: Build file content to export
+                // TODO: Export feature set to CSV file
             } else {
                 System.exit(1);
             }
