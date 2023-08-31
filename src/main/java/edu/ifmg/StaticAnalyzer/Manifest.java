@@ -2,7 +2,8 @@ package edu.ifmg.StaticAnalyzer;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Set;
+import java.sql.Array;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +11,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
+import soot.util.ArraySet;
 
 /**
  * Manifest is a Facade class to handle a sub-set of meta-data parsed by ProcessManifest.
@@ -23,6 +25,7 @@ public class Manifest {
     private String fileName = new String();
     private ProcessManifest manifest = null;
     private String mainEntryPointSig = new String();
+    private List<String> permissions = new ArrayList<>();
 
     public Manifest(String path) {
         appPath = Path.of(path);
@@ -55,8 +58,10 @@ public class Manifest {
         return fileName;
     }
 
-    public Set<String> getPermissions() {
-        return manifest.getPermissions();
+    public List<String> getPermissions() {
+        permissions.addAll(manifest.getPermissions());
+        Collections.sort(permissions);
+        return permissions;
     }
 
     public int getMinSdkVersion() {

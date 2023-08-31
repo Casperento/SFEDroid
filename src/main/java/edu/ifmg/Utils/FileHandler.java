@@ -3,6 +3,8 @@ package edu.ifmg.Utils;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +87,34 @@ public class FileHandler {
             logger.error(e.getMessage());
         }
         return entropy;
+    }
+
+    public static String getDexFileFromApk(String outputPath, String apkPath) {
+        String targetFileName = "classes.dex";
+        File newDexFilePath = new File(outputPath, targetFileName);
+        try {
+            ZipFile zipFile = new ZipFile(apkPath);
+            ZipEntry targetEntry = zipFile.getEntry(targetFileName);
+            if (targetEntry != null) {
+                File outputFolder = new File(outputPath);
+
+                if (!outputFolder.exists()) {
+                    throw new IOException("Output path not found...");
+                }
+
+                InputStream inputStream = zipFile.getInputStream(targetEntry);
+                FileOutputStream outputStream = new FileOutputStream(newDexFilePath);
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = inputStream.read(buffer)) > 0)
+                    outputStream.write(buffer, 0, length);
+                inputStream.close();
+                outputStream.close();
+            }
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+        return newDexFilePath.getAbsolutePath();
     }
 
 }

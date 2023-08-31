@@ -3,6 +3,7 @@ package edu.ifmg.StaticAnalyzer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -22,7 +23,7 @@ public class Parameters {
     private static final Logger logger = LoggerFactory.getLogger(Parameters.class);
     private Path outputFolderPath;
     private String minSdkVersion;
-    private Set<String> permissions;
+    private List<String> permissions;
     private String targetSdkVersion;
     private String pkgName;
     private String sourceFilePath;
@@ -108,7 +109,7 @@ public class Parameters {
     public String getMinSdkVersion() {
         return minSdkVersion;
     }
-    public Set<String> getPermissions() {
+    public List<String> getPermissions() {
         return permissions;
     }
     public String getTargetSdkVersion() {

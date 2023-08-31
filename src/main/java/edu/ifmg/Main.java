@@ -1,5 +1,6 @@
 package edu.ifmg;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -7,16 +8,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-import edu.ifmg.StaticAnalyzer.SourcesSinks;
+import edu.ifmg.StaticAnalyzer.*;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import soot.jimple.infoflow.android.source.parsers.xml.ResourceUtils;
 
-import edu.ifmg.StaticAnalyzer.PermissionsMapper;
-import edu.ifmg.StaticAnalyzer.Analyzer;
-import edu.ifmg.StaticAnalyzer.Parameters;
 import edu.ifmg.Utils.Cli;
 import edu.ifmg.Utils.FileHandler;
 
@@ -51,6 +49,7 @@ public class Main {
 
         PermissionsMapper mapper = PermissionsMapper.getInstance(cli.getPermissionsMappingFolder());
         SourcesSinks sourcesSinks = SourcesSinks.getInstance();
+        ResultsParser resultsParser = ResultsParser.getInstance();
 
         if (cli.getInputListFilePath() != null && !cli.getInputListFilePath().isEmpty()) {
             List<String> apks = FileHandler.importFile(cli.getInputListFilePath());
@@ -115,22 +114,42 @@ public class Main {
                     analyzer.exportCallgraph();
                 }
 
-                // Preparing features
-                HashSet<String> sourcesSinksMethodsSigs = sourcesSinks.getSinksMethodsSigs();
+                /* Preparing features */
+
+                // Basic features
+                List<String> permissions = new ArrayList<>(mapper.getPermissionMethods().keySet());
+                Collections.sort(permissions);
+                List<String> mappedMethods = new ArrayList<>();
+                for (String key : permissions)
+                    mappedMethods.addAll(mapper.getPermissionMethods().get(key));
+                Collections.sort(mappedMethods);
+                List<String> sourcesSinksMethodsSigs = new ArrayList<>(sourcesSinks.getSinksMethodsSigs());
+                Collections.sort(sourcesSinksMethodsSigs);
+
+                // Apk-specific features
                 int apkSize = FileHandler.getFileSize(cli.getSourceFilePath());
-                double apkEntropy = FileHandler.getFileEntropy(cli.getSourceFilePath()); // TODO: calculate .dex entropy
-                Set<String> permissions = mapper.getPermissionMethods().keySet();
+                List<String> apkPermissions = p.getPermissions();
+                String outputDexFile = FileHandler.getDexFileFromApk(p.getOutputFolderPath().toString(), cli.getSourceFilePath());
+                double apkDexEntropy = FileHandler.getFileEntropy(outputDexFile); // Entropy heuristic: if an executable file has an entropy greater than 7.0, then is likely to be compressed, encrypted or packed
+
+                // Getting sink methods that leaks, from FlowDroid's analysis results
+                File resultsFile = new File(p.getOutputFolderPath().toString(), "analysis_results.xml");
+                ResultsParser.parse(resultsFile);
+                List<String> methodsLeaking = ResultsParser.getSinksMethodsSigs();
 
                 System.out.println("----------------------------------------------Feature-Set-----------------------------------------------");
-                System.out.printf("Label: %s\n", "1"); // 1: malware, 0: benign | TODO: cli option to set label
+                System.out.printf("Label: %d\n", cli.getDefinedLabel());
                 System.out.printf("Package name: %s\n", p.getPkgName());
                 System.out.printf("MinSdkVersion: %s\n", p.getMinSdkVersion());
                 System.out.printf("TargetSdkVersion: %s\n", p.getTargetSdkVersion());
-                System.out.printf("File size: %d\n", apkSize);
-                System.out.printf("File entropy: %.2f\n", apkEntropy);
-                System.out.printf("Number of permissions mapped: %d\n", permissions.size());
+                System.out.printf("Apk size: %d\n", apkSize);
+                System.out.printf("Dex file entropy: %.2f\n", apkDexEntropy);
+                System.out.printf("Number of permissions mapped: %d\n", apkPermissions.size());
+                System.out.printf("Number of permissions used by the app: %d\n", permissions.size());
+                System.out.printf("Number of methods mapped by permissions: %d\n", mappedMethods.size());
                 System.out.printf("Number of reachable methods: %d\n", reachableMethods.size());
-                System.out.printf("Number of sink methods loaded by FlowDroid: %d\n", sourcesSinksMethodsSigs.size()); // TODO: read found leanks and match against loaded sinks
+                System.out.printf("Number of sink methods loaded by FlowDroid: %d\n", sourcesSinksMethodsSigs.size());
+                System.out.printf("Number of sinks methods read from the analysis' results: %d\n", methodsLeaking.size());
                 System.out.println("--------------------------------------------------------------------------------------------------------");
 
                 // TODO: Build file content to export

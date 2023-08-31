@@ -46,6 +46,7 @@ public class Cli {
     private String homePath;
     private static Cli instance;
     private boolean logMode = false;
+    private int definedLabel = 0;
 
     private Cli() {
         Map<String, String> env = System.getenv();
@@ -93,6 +94,10 @@ public class Cli {
         Option dataFlowAnalysisTimeout = new Option("t", "timeout", true, "set timeout in seconds to abort the taint analysis");
         dataFlowAnalysisTimeout.setOptionalArg(true);
         options.addOption(dataFlowAnalysisTimeout);
+
+        Option defineLabelOption = new Option("r", "define-label", true, "define apks' labels, 1 for malware 0 for benign");
+        defineLabelOption.setRequired(true);
+        options.addOption(defineLabelOption);
     }
 
     public static Cli getInstance() {
@@ -105,6 +110,7 @@ public class Cli {
         cmd = parser.parse(options, args);
         sourceFilePath = cmd.getOptionValue("source-file");
         inputListFilePath = cmd.getOptionValue("list-file");
+        definedLabel = Integer.parseInt(cmd.getOptionValue("define-label"));
 
         if (cmd.getOptionValue("timeout") != null)
             timeOut = Integer.valueOf(cmd.getOptionValue("timeout"));
@@ -205,4 +211,7 @@ public class Cli {
         return cgAlgorithm;
     }
 
+    public int getDefinedLabel() {
+        return definedLabel;
+    }
 }
