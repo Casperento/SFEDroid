@@ -37,11 +37,20 @@ public class Analyzer {
     private Parameters params;
     private ReachableMethods reachableMethods;
     private boolean hasError = false;
+    File outputDatasetFile;
+
     private List<String> reachable = new ArrayList<>();
+    private List<String> sourcesSinksMethodsSigs;
+    private List<String> mappedMethods = new ArrayList<>();
+    private List<String> permissions;
+
+    private final ApkHandler apkHandler = ApkHandler.getInstance();
+    private SourcesSinks sourcesSinks = SourcesSinks.getInstance();
 
     public Analyzer(Parameters p) {
         params = p;
-        String analysisResultsFile = Path.of(params.getOutputFolderPath().toString(), "analysis_results.xml").toString();
+        String analysisResultsFile = Path.of(params.getOutputFilePath().toString(), "analysis_results.xml").toString();
+        outputDatasetFile = new File(params.getOutputFolderPath().toString(), "dataset.tsv");
 
         // Configuring flowdroid options to generate Call Graphs
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
@@ -82,8 +91,7 @@ public class Analyzer {
             return;
         }
 
-        SourcesSinks sourceSinks = SourcesSinks.getInstance();
-        sourceSinks.setSinksDefinitions(app.getSinks());
+        sourcesSinks.setSinksDefinitions(app.getSinks());
         reachableMethods = Scene.v().getReachableMethods();
 
         // Listing valid classes to generate edges' mapping
@@ -202,7 +210,7 @@ public class Analyzer {
         // Printing callgraph's general inforamation into dot file
         StringBuilder fileData = new StringBuilder();
 
-        logger.info(String.format("Printing app's call graph into: %s...", params.getOutputFolderPath()));
+        logger.info(String.format("Printing app's call graph into: %s...", params.getOutputFilePath()));
         fileData.append(String.format("digraph %s {\nnode [style=filled];\n", params.getPkgName().replaceAll("\\.","_")));
 
         // Traverse callgraph edges' mapping and write output dot
@@ -254,13 +262,88 @@ public class Analyzer {
 
         try {
             String dotName = String.format("%s.dot", Path.of(params.getSourceFilePath()).getFileName());
-            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFolderPath().toString(),  dotName);
+            FileHandler.exportFile(String.valueOf(fileData), params.getOutputFilePath().toString(),  dotName);
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
     }
 
-    public List<String> getReachable() {
-        return reachable;
+    public void prepareBasicFeatures(PermissionsMapper mapper) {
+        permissions = new ArrayList<>(mapper.getPermissionMethods().keySet());
+        Collections.sort(permissions);
+        for (String key : permissions)
+            mappedMethods.addAll(mapper.getPermissionMethods().get(key));
+        Collections.sort(mappedMethods);
+        sourcesSinksMethodsSigs = new ArrayList<>(sourcesSinks.getSinksMethodsSigs());
+        Collections.sort(sourcesSinksMethodsSigs);
+
+        if (params.getCreateNewDatasetFile())
+            createNewDatasetFile();
     }
+
+    private void createNewDatasetFile() {
+        StringBuilder content = new StringBuilder("label\tpkgName\tminSdkVersion\ttargetSdkVersion\tapkSize\tdexEntropy\t");
+        for (String pm : permissions)
+            content.append(String.format("%s\t", pm));
+        for (String mm : mappedMethods)
+            content.append(String.format("%s\t", mm));
+        for (String ss : sourcesSinksMethodsSigs)
+            content.append(String.format("%s\t", ss));
+        content.append("target\n");
+        try {
+            FileHandler.exportFile(content.toString(), outputDatasetFile.getParent(), outputDatasetFile.getName());
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
+    public void prepareApkFeatures() {
+        // Preparing apk-specific features
+        apkHandler.setSize(FileHandler.getFileSize(params.getSourceFilePath()));
+        apkHandler.setPermissions(params.getPermissions());
+        String outputDexFile = FileHandler.getDexFileFromApk(params.getOutputFilePath().toString(), params.getSourceFilePath());
+        apkHandler.setEntropy(FileHandler.getFileEntropy(outputDexFile));
+
+        // Getting sink methods that leaks, from FlowDroid's analysis results
+        File resultsFile = new File(params.getOutputFilePath().toString(), "analysis_results.xml");
+        ResultsParser resultsParser = ResultsParser.getInstance();
+        resultsParser.parse(resultsFile);
+        apkHandler.setLeakingMethods(resultsParser.getSinksMethodsSigs());
+    }
+
+    public void exportDataSet() {
+        // Build file content to export
+        StringBuilder content = new StringBuilder(String.format("%s\t%s\t%s\t%s\t%d\t", params.getDefinedLabel(), params.getPkgName(), params.getMinSdkVersion(), params.getTargetSdkVersion(), apkHandler.getSize()));
+        if (apkHandler.getEntropy() > 7.0) { // Entropy heuristic: if an executable file has an entropy greater than 7.0, then is likely to be compressed, encrypted or packed
+            content.append("1\t");
+        } else {
+            content.append("0\t");
+        }
+        for (String pm : permissions) {
+            if (apkHandler.getPermissions().contains(pm))
+                content.append("1\t");
+            else
+                content.append("0\t");
+        }
+        for (String mm : mappedMethods) {
+            if (reachable.contains(mm))
+                content.append("1\t");
+            else
+                content.append("0\t");
+        }
+        for (String ss : sourcesSinksMethodsSigs) {
+            if (apkHandler.getLeakingMethods().contains(ss))
+                content.append("1\t");
+            else
+                content.append("0\t");
+        }
+        content.append("0\n");
+
+        // Export feature set to CSV file
+        if (!outputDatasetFile.exists())
+            createNewDatasetFile();
+        FileHandler.appendContentToFile(outputDatasetFile.toString(), content.toString());
+    }
+
+    public List<String> getReachable() { return reachable; }
 }

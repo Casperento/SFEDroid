@@ -117,4 +117,14 @@ public class FileHandler {
         return newDexFilePath.getAbsolutePath();
     }
 
+    public static void appendContentToFile(String filePath, String content) {
+        try {
+            FileWriter fileWriter = new FileWriter(filePath, true);
+            fileWriter.write(content);
+            fileWriter.close();
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+    }
+
 }

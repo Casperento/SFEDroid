@@ -16,7 +16,7 @@ import java.util.List;
 public class ResultsParser {
     private static final Logger logger = LoggerFactory.getLogger(ResultsParser.class);
     private static ResultsParser instance;
-    private static List<String> sinksMethodsSigs = new ArrayList<>();
+    private List<String> sinksMethodsSigs = new ArrayList<>();
 
     public static ResultsParser getInstance() {
         if (ResultsParser.instance == null) {
@@ -25,7 +25,7 @@ public class ResultsParser {
         return instance;
     }
 
-    public static void parse(File inputFile) {
+    public void parse(File inputFile) {
         sinksMethodsSigs.clear();
         try {
             DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
@@ -58,7 +58,7 @@ public class ResultsParser {
         }
     }
 
-    public static List<String> getSinksMethodsSigs() {
+    public List<String> getSinksMethodsSigs() {
         return sinksMethodsSigs;
     }
 }

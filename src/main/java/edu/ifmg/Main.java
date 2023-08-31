@@ -13,6 +13,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import soot.Scene;
+import soot.SootMethod;
 import soot.jimple.infoflow.android.source.parsers.xml.ResourceUtils;
 
 import edu.ifmg.Utils.Cli;
@@ -48,8 +50,6 @@ public class Main {
         }
 
         PermissionsMapper mapper = PermissionsMapper.getInstance(cli.getPermissionsMappingFolder());
-        SourcesSinks sourcesSinks = SourcesSinks.getInstance();
-        ResultsParser resultsParser = ResultsParser.getInstance();
 
         if (cli.getInputListFilePath() != null && !cli.getInputListFilePath().isEmpty()) {
             List<String> apks = FileHandler.importFile(cli.getInputListFilePath());
@@ -102,6 +102,7 @@ public class Main {
             Parameters p = new Parameters(cli, cli.getSourceFilePath());
             Analyzer analyzer = new Analyzer(p);
             analyzer.analyze();
+            analyzer.prepareBasicFeatures(mapper);
             if (!analyzer.hasError()) {
 
                 // Check for reachability of methods allowed by permissions
@@ -114,46 +115,11 @@ public class Main {
                     analyzer.exportCallgraph();
                 }
 
-                /* Preparing features */
-
-                // Basic features
-                List<String> permissions = new ArrayList<>(mapper.getPermissionMethods().keySet());
-                Collections.sort(permissions);
-                List<String> mappedMethods = new ArrayList<>();
-                for (String key : permissions)
-                    mappedMethods.addAll(mapper.getPermissionMethods().get(key));
-                Collections.sort(mappedMethods);
-                List<String> sourcesSinksMethodsSigs = new ArrayList<>(sourcesSinks.getSinksMethodsSigs());
-                Collections.sort(sourcesSinksMethodsSigs);
-
                 // Apk-specific features
-                int apkSize = FileHandler.getFileSize(cli.getSourceFilePath());
-                List<String> apkPermissions = p.getPermissions();
-                String outputDexFile = FileHandler.getDexFileFromApk(p.getOutputFolderPath().toString(), cli.getSourceFilePath());
-                double apkDexEntropy = FileHandler.getFileEntropy(outputDexFile); // Entropy heuristic: if an executable file has an entropy greater than 7.0, then is likely to be compressed, encrypted or packed
+                analyzer.prepareApkFeatures();
 
-                // Getting sink methods that leaks, from FlowDroid's analysis results
-                File resultsFile = new File(p.getOutputFolderPath().toString(), "analysis_results.xml");
-                ResultsParser.parse(resultsFile);
-                List<String> methodsLeaking = ResultsParser.getSinksMethodsSigs();
-
-                System.out.println("----------------------------------------------Feature-Set-----------------------------------------------");
-                System.out.printf("Label: %d\n", cli.getDefinedLabel());
-                System.out.printf("Package name: %s\n", p.getPkgName());
-                System.out.printf("MinSdkVersion: %s\n", p.getMinSdkVersion());
-                System.out.printf("TargetSdkVersion: %s\n", p.getTargetSdkVersion());
-                System.out.printf("Apk size: %d\n", apkSize);
-                System.out.printf("Dex file entropy: %.2f\n", apkDexEntropy);
-                System.out.printf("Number of permissions mapped: %d\n", apkPermissions.size());
-                System.out.printf("Number of permissions used by the app: %d\n", permissions.size());
-                System.out.printf("Number of methods mapped by permissions: %d\n", mappedMethods.size());
-                System.out.printf("Number of reachable methods: %d\n", reachableMethods.size());
-                System.out.printf("Number of sink methods loaded by FlowDroid: %d\n", sourcesSinksMethodsSigs.size());
-                System.out.printf("Number of sinks methods read from the analysis' results: %d\n", methodsLeaking.size());
-                System.out.println("--------------------------------------------------------------------------------------------------------");
-
-                // TODO: Build file content to export
-                // TODO: Export feature set to CSV file
+                // Export dataset
+                analyzer.exportDataSet();
             } else {
                 System.exit(1);
             }

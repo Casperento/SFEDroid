@@ -8,7 +8,7 @@ import java.util.HashSet;
 public class SourcesSinks {
     private static SourcesSinks instance;
     private static Collection<? extends ISourceSinkDefinition> sinksDefinitions;
-    private static final HashSet<String> sinkMethodsSigs = new HashSet<>();
+    private final HashSet<String> sinkMethodsSigs = new HashSet<>();
 
     public static SourcesSinks getInstance() {
         if (SourcesSinks.instance == null) {

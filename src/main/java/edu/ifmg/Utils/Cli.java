@@ -36,17 +36,18 @@ public class Cli {
     private CommandLine cmd = null;
     private String sourceFilePath = new String();
     private String inputListFilePath = new String();
-    private String outputFilePath = new String();
+    private String outputFolderPath = new String();
     private String androidJarPath = new String();
     private String additionalClassPath = new String();
     private String permissionsMappingFolder = new String();
     private Integer timeOut = null;
     private Boolean exportCallGraph = false;
-    private InfoflowConfiguration.CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.CHA;
+    private CallgraphAlgorithm cgAlgorithm = CallgraphAlgorithm.CHA;
     private String homePath;
     private static Cli instance;
     private boolean logMode = false;
     private int definedLabel = 0;
+    private boolean createNewDatasetFile;
 
     private Cli() {
         Map<String, String> env = System.getenv();
@@ -98,6 +99,10 @@ public class Cli {
         Option defineLabelOption = new Option("r", "define-label", true, "define apks' labels, 1 for malware 0 for benign");
         defineLabelOption.setRequired(true);
         options.addOption(defineLabelOption);
+
+        Option createNewDatasetFileOption = new Option("d", "create-dataset", false, "set this parameter to create new dataset.tsv file");
+        createNewDatasetFileOption.setOptionalArg(true);
+        options.addOption(createNewDatasetFileOption);
     }
 
     public static Cli getInstance() {
@@ -111,6 +116,7 @@ public class Cli {
         sourceFilePath = cmd.getOptionValue("source-file");
         inputListFilePath = cmd.getOptionValue("list-file");
         definedLabel = Integer.parseInt(cmd.getOptionValue("define-label"));
+        createNewDatasetFile = cmd.hasOption("create-dataset");
 
         if (cmd.getOptionValue("timeout") != null)
             timeOut = Integer.valueOf(cmd.getOptionValue("timeout"));
@@ -140,9 +146,9 @@ public class Cli {
         if (androidJarPath == null)
             androidJarPath = "android-platforms";
 
-        outputFilePath = cmd.getOptionValue("output-folder");
-        if (outputFilePath == null)
-            outputFilePath = homePath;
+        outputFolderPath = cmd.getOptionValue("output-folder");
+        if (outputFolderPath == null)
+            outputFolderPath = homePath;
         
         String cgAlgorithmOpt = cmd.getOptionValue("callgraph-alg");
         if (cgAlgorithmOpt != null) {
@@ -195,8 +201,8 @@ public class Cli {
         return sourceFilePath;
     }
 
-    public String getOutputFilePath() {
-        return outputFilePath;
+    public String getOutputFolderPath() {
+        return outputFolderPath;
     }
 
     public String getAndroidJarPath() {
@@ -207,11 +213,13 @@ public class Cli {
         return options;
     }
 
-    public InfoflowConfiguration.CallgraphAlgorithm getCgAlgorithm() {
+    public CallgraphAlgorithm getCgAlgorithm() {
         return cgAlgorithm;
     }
 
     public int getDefinedLabel() {
         return definedLabel;
     }
+
+    public boolean getCreateNewDatasetFile() { return createNewDatasetFile; }
 }

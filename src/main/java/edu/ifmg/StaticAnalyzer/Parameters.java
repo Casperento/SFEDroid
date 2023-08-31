@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +20,7 @@ import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
  */
 public class Parameters {
     private static final Logger logger = LoggerFactory.getLogger(Parameters.class);
+    private Path outputFilePath;
     private Path outputFolderPath;
     private String minSdkVersion;
     private List<String> permissions;
@@ -31,12 +31,18 @@ public class Parameters {
     private String additionalClassPath;
     private CallgraphAlgorithm cgAlgorithm;
     private Integer timeOut;
+    private int definedLabel;
     private boolean hasError = false;
+    private boolean createNewDatasetFile;
+
     public Parameters(Cli cli, String inputFile) {
         sourceFilePath = inputFile;
         additionalClassPath = cli.getAdditionalClassPath();
         cgAlgorithm = cli.getCgAlgorithm();
         timeOut = cli.getTimeOut();
+        definedLabel = cli.getDefinedLabel();
+        outputFolderPath = Path.of(cli.getOutputFolderPath());
+        createNewDatasetFile = cli.getCreateNewDatasetFile();
 
         Manifest manifestHandler = new Manifest(inputFile);
 
@@ -50,11 +56,11 @@ public class Parameters {
         }
 
         // Setting and creating output folder
-        outputFolderPath = Path.of(cli.getOutputFilePath(), manifestHandler.getPackageName());
-        if (!Files.exists(outputFolderPath)) {
+        outputFilePath = Path.of(cli.getOutputFolderPath(), manifestHandler.getPackageName());
+        if (!Files.exists(outputFilePath)) {
             logger.info("Creating new output folder for the app under analysis...");
-            if (!outputFolderPath.toFile().mkdirs()) {
-                logger.error(String.format("Failed when trying to create output folder: %s", outputFolderPath.toString()));
+            if (!outputFilePath.toFile().mkdirs()) {
+                logger.error(String.format("Failed when trying to create output folder: %s", outputFilePath.toString()));
                 return;
             }
         }
@@ -74,7 +80,7 @@ public class Parameters {
 
         logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
         logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
-        logger.info(String.format("Output path: %s", outputFolderPath.toString()));
+        logger.info(String.format("Output path: %s", outputFilePath.toString()));
         logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
         logger.info(String.format("Package Name: %s", pkgName));
     }
@@ -82,29 +88,23 @@ public class Parameters {
     public boolean hasError() {
         return hasError;
     }
-
     public Integer getTimeOut() {
         return timeOut;
     }
-
     public String getSourceFilePath() {
         return sourceFilePath;
     }
-
     public String getAndroidJarPath() {
         return androidJarPath;
     }
-
     public String getAdditionalClassPath() {
         return additionalClassPath;
     }
-
     public CallgraphAlgorithm getCgAlgorithm() {
         return cgAlgorithm;
     }
-
-    public Path getOutputFolderPath() {
-        return outputFolderPath;
+    public Path getOutputFilePath() {
+        return outputFilePath;
     }
     public String getMinSdkVersion() {
         return minSdkVersion;
@@ -118,6 +118,8 @@ public class Parameters {
     public String getPkgName() {
         return pkgName;
     }
-    
-    
+    public int getDefinedLabel() { return definedLabel; }
+    public Path getOutputFolderPath() { return outputFolderPath; }
+
+    public boolean getCreateNewDatasetFile() { return createNewDatasetFile; }
 }
