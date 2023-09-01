@@ -61,10 +61,10 @@ public class FileHandler {
         return fileSize;
     }
 
-    public static double getFileEntropy(String filePath) {
+    public static double getFileEntropy(InputStream fileInputStream) {
         double entropy = 0.0;
         try {
-            FileInputStream fileInputStream = new FileInputStream(filePath);
+//            FileInputStream fileInputStream = new FileInputStream(filePath);
             int fileSize = fileInputStream.available();
             int[] byteFrequency = new int[256]; // Array to hold byte frequency
 
@@ -89,32 +89,17 @@ public class FileHandler {
         return entropy;
     }
 
-    public static String getDexFileFromApk(String outputPath, String apkPath) {
+    public static InputStream getDexFileFromApk(String apkPath) {
         String targetFileName = "classes.dex";
-        File newDexFilePath = new File(outputPath, targetFileName);
         try {
             ZipFile zipFile = new ZipFile(apkPath);
             ZipEntry targetEntry = zipFile.getEntry(targetFileName);
-            if (targetEntry != null) {
-                File outputFolder = new File(outputPath);
-
-                if (!outputFolder.exists()) {
-                    throw new IOException("Output path not found...");
-                }
-
-                InputStream inputStream = zipFile.getInputStream(targetEntry);
-                FileOutputStream outputStream = new FileOutputStream(newDexFilePath);
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = inputStream.read(buffer)) > 0)
-                    outputStream.write(buffer, 0, length);
-                inputStream.close();
-                outputStream.close();
-            }
+            if (targetEntry != null)
+                return zipFile.getInputStream(targetEntry);
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
-        return newDexFilePath.getAbsolutePath();
+        return null;
     }
 
     public static void appendContentToFile(String filePath, String content) {

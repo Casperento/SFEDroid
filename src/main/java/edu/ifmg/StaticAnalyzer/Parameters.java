@@ -56,7 +56,9 @@ public class Parameters {
         }
 
         // Setting and creating output folder
-        outputFilePath = Path.of(cli.getOutputFolderPath(), manifestHandler.getPackageName());
+        String apkFileName = Path.of(sourceFilePath).getFileName().toString();
+        apkFileName = apkFileName.split("\\.")[0];
+        outputFilePath = Path.of(cli.getOutputFolderPath(), String.format("%s_%s", manifestHandler.getPackageName(), apkFileName));
         if (!Files.exists(outputFilePath)) {
             logger.info("Creating new output folder for the app under analysis...");
             if (!outputFilePath.toFile().mkdirs()) {

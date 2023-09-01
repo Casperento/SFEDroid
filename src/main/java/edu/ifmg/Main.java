@@ -1,6 +1,5 @@
 package edu.ifmg;
 
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,8 +12,6 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import soot.Scene;
-import soot.SootMethod;
 import soot.jimple.infoflow.android.source.parsers.xml.ResourceUtils;
 
 import edu.ifmg.Utils.Cli;
@@ -72,17 +69,9 @@ public class Main {
                     }
                     Analyzer analyzer = new Analyzer(p);
                     analyzer.analyze();
+                    analyzer.prepareBasicFeatures(mapper);
                     if (!analyzer.hasError()) {
-
-                        // Check for reachability of methods allowed by permissions
-                        analyzer.listReachableMethods(mapper);
-                        List<String> reachableMethods = analyzer.getReachable();
-                        if (reachableMethods.isEmpty())
-                            logger.info("No reachable methods found...");
-
-                        if (cli.getExportCallGraph()) {
-                            analyzer.exportCallgraph();
-                        }
+                        postAnalysis(analyzer, mapper, cli);
                     } else {
                         System.out.printf("Failed to analyze '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to analyze '%s' file. Skipping...%n", apk));
@@ -100,29 +89,36 @@ public class Main {
                     "\tTotal of SKIPPED: %d (%d%%)", totalApks, (totalApks-failed), failed, (100*failed/totalApks));
         } else {
             Parameters p = new Parameters(cli, cli.getSourceFilePath());
+            if (p.hasError()) {
+                System.out.println("Failed to parse manifest file of the current apk...");
+                logger.warn("Failed to parse manifest file of the current apk...");
+            }
             Analyzer analyzer = new Analyzer(p);
             analyzer.analyze();
             analyzer.prepareBasicFeatures(mapper);
             if (!analyzer.hasError()) {
-
-                // Check for reachability of methods allowed by permissions
-                analyzer.listReachableMethods(mapper);
-                List<String> reachableMethods = analyzer.getReachable();
-                if (reachableMethods.isEmpty())
-                    logger.info("No reachable methods found...");
-
-                if (cli.getExportCallGraph()) {
-                    analyzer.exportCallgraph();
-                }
-
-                // Apk-specific features
-                analyzer.prepareApkFeatures();
-
-                // Export dataset
-                analyzer.exportDataSet();
+                postAnalysis(analyzer, mapper, cli);
             } else {
                 System.exit(1);
             }
         }
+    }
+
+    private static void postAnalysis(Analyzer analyzer, PermissionsMapper mapper, Cli cli) {
+        // Check for reachability of methods allowed by permissions
+        analyzer.listReachableMethods(mapper);
+        List<String> reachableMethods = analyzer.getReachable();
+        if (reachableMethods.isEmpty())
+            logger.info("No reachable methods found...");
+
+        if (cli.getExportCallGraph()) {
+            analyzer.exportCallgraph();
+        }
+
+        // Apk-specific features
+        analyzer.prepareApkFeatures();
+
+        // Export dataset
+        analyzer.exportDataSet();
     }
 }

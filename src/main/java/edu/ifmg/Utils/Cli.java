@@ -100,7 +100,7 @@ public class Cli {
         defineLabelOption.setRequired(true);
         options.addOption(defineLabelOption);
 
-        Option createNewDatasetFileOption = new Option("d", "create-dataset", false, "set this parameter to create new dataset.tsv file");
+        Option createNewDatasetFileOption = new Option("d", "create-dataset", false, "create a new dataset.tsv file and overwrite existing one in the output folder");
         createNewDatasetFileOption.setOptionalArg(true);
         options.addOption(createNewDatasetFileOption);
     }
