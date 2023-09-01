@@ -40,12 +40,11 @@ public class Analyzer {
     File outputDatasetFile;
 
     private List<String> reachable = new ArrayList<>();
-    private List<String> sourcesSinksMethodsSigs;
-    private List<String> mappedMethods = new ArrayList<>();
-    private List<String> permissions;
-
     private final ApkHandler apkHandler = ApkHandler.getInstance();
-    private SourcesSinks sourcesSinks = SourcesSinks.getInstance();
+    private static List<String> sourcesSinksMethodsSigs = new ArrayList<>();
+    private static List<String> mappedMethods = new ArrayList<>();
+    private static List<String> permissions = new ArrayList<>();
+    private static SourcesSinks sourcesSinks = SourcesSinks.getInstance();
 
     public Analyzer(Parameters p) {
         params = p;
@@ -91,7 +90,9 @@ public class Analyzer {
             return;
         }
 
-        sourcesSinks.setSinksDefinitions(app.getSinks());
+        if (Analyzer.sourcesSinks.getSinksMethodsSigs().isEmpty())
+            Analyzer.sourcesSinks.setSinksDefinitions(app.getSinks());
+
         reachableMethods = Scene.v().getReachableMethods();
 
         // Listing valid classes to generate edges' mapping
@@ -269,13 +270,16 @@ public class Analyzer {
     }
 
     public void prepareBasicFeatures(PermissionsMapper mapper) {
-        permissions = new ArrayList<>(mapper.getPermissionMethods().keySet());
-        Collections.sort(permissions);
-        for (String key : permissions)
-            mappedMethods.addAll(mapper.getPermissionMethods().get(key));
-        Collections.sort(mappedMethods);
-        sourcesSinksMethodsSigs = new ArrayList<>(sourcesSinks.getSinksMethodsSigs());
-        Collections.sort(sourcesSinksMethodsSigs);
+        if (!Analyzer.permissions.isEmpty() || !Analyzer.mappedMethods.isEmpty() || !Analyzer.sourcesSinksMethodsSigs.isEmpty())
+            return;
+
+        Analyzer.permissions = new ArrayList<>(mapper.getPermissionMethods().keySet());
+        Collections.sort(Analyzer.permissions);
+        for (String key : Analyzer.permissions)
+            Analyzer.mappedMethods.addAll(mapper.getPermissionMethods().get(key));
+        Collections.sort(Analyzer.mappedMethods);
+        Analyzer.sourcesSinksMethodsSigs = new ArrayList<>(sourcesSinks.getSinksMethodsSigs());
+        Collections.sort(Analyzer.sourcesSinksMethodsSigs);
 
         if (params.getCreateNewDatasetFile())
             createNewDatasetFile();

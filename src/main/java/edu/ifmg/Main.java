@@ -69,8 +69,8 @@ public class Main {
                     }
                     Analyzer analyzer = new Analyzer(p);
                     analyzer.analyze();
-                    analyzer.prepareBasicFeatures(mapper);
                     if (!analyzer.hasError()) {
+                        analyzer.prepareBasicFeatures(mapper);
                         postAnalysis(analyzer, mapper, cli);
                     } else {
                         System.out.printf("Failed to analyze '%s' file. Skipping...%n", apk);
@@ -95,8 +95,8 @@ public class Main {
             }
             Analyzer analyzer = new Analyzer(p);
             analyzer.analyze();
-            analyzer.prepareBasicFeatures(mapper);
             if (!analyzer.hasError()) {
+                analyzer.prepareBasicFeatures(mapper);
                 postAnalysis(analyzer, mapper, cli);
             } else {
                 System.exit(1);

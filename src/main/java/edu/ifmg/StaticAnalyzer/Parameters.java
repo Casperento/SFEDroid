@@ -122,6 +122,5 @@ public class Parameters {
     }
     public int getDefinedLabel() { return definedLabel; }
     public Path getOutputFolderPath() { return outputFolderPath; }
-
     public boolean getCreateNewDatasetFile() { return createNewDatasetFile; }
 }
