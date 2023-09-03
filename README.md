@@ -1,15 +1,19 @@
 ## Static Features Extractor for Android (SFEDroid)
 
 SFEDroid is a tool for analyzing APKs statically to build up a dataset. It does so by managing
-[FlowDroid](https://github.com/secure-software-engineering/FlowDroid) data flow analysis capabilities. It also uses android permission mappings provided by [Axplorer](https://github.com/reddr/axplorer).
+[FlowDroid](https://github.com/secure-software-engineering/FlowDroid) data flow analysis capabilities. It also uses android permission mappings provided by [axplorer](https://github.com/reddr/axplorer).
 
-The current features extractable are:
+The current features extractable are (the collumns exported follow this order):
 
-- Android Permissions;
-- Target SDK Version;
+- label (1: malware | 0: benign);
+- Package Name;
 - Min SDK Version;
-- Methods mapped by permissions, which are reachable in the lifecycle of the app;
-- Sink methods that leak information in the Taint Analysis;
+- Target SDK Version;
+- Apk file size;
+- `classes.dex`'s entropy (1: it is greater than 7.0 | 0: less than 7.0);
+- List of Android Permissions (provided by [axplorer](https://github.com/reddr/axplorer/tree/master/permissions)), set to 1 when it is requested by the app under analysis, otherwise 0;
+- Methods mapped by permissions (provided by [axplorer](https://github.com/reddr/axplorer/tree/master/permissions)), set to 1 when it is reachable in the lifecycle of some app's activity, otherwise 0;
+- List of sink methods (provided by [FlowDroid](https://github.com/secure-software-engineering/FlowDroid/blob/develop/soot-infoflow-android/SourcesAndSinks.txt)), set to 1 when leaks some inforation, otherwise 0;
 
 ---
 
@@ -39,6 +43,29 @@ To build, one needs to run the following command in its platform:
 
 ## Usage
 
-The program implements the following CLI:
+The program implements the following CLI commands:
 
-_TODO..._
+```
+usage: SFEDroid
+ -ac,--additional-classpath <arg>   path to add into soot's classpath
+                                    (separated by ':' or ';')
+ -c,--callgraph-alg <arg>           callgraph algorithm: AUTO, CHA
+                                    (default), VTA, RTA, SPARK or GEOM
+ -d,--create-dataset                create a new dataset.tsv file and
+                                    overwrite existing one in the output
+                                    folder
+ -e,--export-callgraph              export callgraph as DOT file
+ -i,--source-file <arg>             source apk file
+ -j,--android-jars <arg>            path to android jars
+ -l,--list-file <arg>               a file containing a list of apks to
+                                    analyze
+ -o,--output-folder <arg>           output folder to save exported files
+                                    related to the apk being analyzed
+ -p,--permissions-mapping <arg>     permissions' mapping input file
+ -r,--define-label <arg>            define apks' labels, 1 for malware 0
+                                    for benign
+ -t,--timeout <arg>                 set timeout in seconds to abort the
+                                    taint analysis
+ -v,--verbose                       turn on logs and write it to console
+                                    and disk ('/src/main/resources/logs')
+```
