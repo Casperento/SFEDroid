@@ -83,10 +83,14 @@ public class Main {
                     failed++;
                 }
             }
-            System.out.printf("\nAnalysis results:\n" +
-                    "\tTotal of APKs analyzed: %d\n" +
-                    "\tTotal of SUCCESS: %d\n" +
-                    "\tTotal of SKIPPED: %d (%d%%)", totalApks, (totalApks-failed), failed, (100*failed/totalApks));
+            String analysisResults = String.format("""
+
+                    Analysis results:
+                    \tTotal of APKs analyzed: %d
+                    \tTotal of SUCCESS: %d
+                    \tTotal of SKIPPED: %d (%d%%)""", totalApks, (totalApks-failed), failed, (100*failed/totalApks));
+            System.out.println(analysisResults);
+            logger.info(analysisResults);
         } else {
             Parameters p = new Parameters(cli, cli.getSourceFilePath());
             if (p.hasError()) {
