@@ -46,6 +46,13 @@ public class Analyzer {
     private static List<String> permissions = new ArrayList<>();
     private static SourcesSinks sourcesSinks = SourcesSinks.getInstance();
 
+    /**
+     * <p>The constructor takes an object of the Parameters class to setup the static analyzer.
+     * </p>
+     * @param p Parameters object that is used to setup the static analyzer
+     * @return
+     * @since 1.0
+     */
     public Analyzer(Parameters p) {
         params = p;
         String analysisResultsFile = Path.of(params.getOutputFilePath().toString(), "analysis_results.xml").toString();
