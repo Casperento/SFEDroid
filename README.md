@@ -10,7 +10,7 @@ The current features extractable are (the collumns exported follow this order):
 - Min SDK Version;
 - Target SDK Version;
 - Apk file size;
-- `classes.dex`'s entropy (1: it is greater than 7.0 | 0: less than 7.0);
+- `classes.dex`'s entropy;
 - List of Android Permissions (provided by [axplorer](https://github.com/reddr/axplorer/tree/master/permissions)), set to 1 when it is requested by the app under analysis, otherwise 0;
 - Methods mapped by permissions (provided by [axplorer](https://github.com/reddr/axplorer/tree/master/permissions)), set to 1 when it is reachable in the lifecycle of some app's activity, otherwise 0;
 - List of sink methods (provided by [FlowDroid](https://github.com/secure-software-engineering/FlowDroid/blob/develop/soot-infoflow-android/SourcesAndSinks.txt)), set to 1 when leaks some inforation, otherwise 0;

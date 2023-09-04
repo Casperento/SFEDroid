@@ -321,11 +321,8 @@ public class Analyzer {
     public void exportDataSet() {
         // Build file content to export
         StringBuilder content = new StringBuilder(String.format("%s\t%s\t%s\t%s\t%d\t", params.getDefinedLabel(), params.getPkgName(), params.getMinSdkVersion(), params.getTargetSdkVersion(), apkHandler.getSize()));
-        if (apkHandler.getEntropy() > 7.0) { // Entropy heuristic: if an executable file has an entropy greater than 7.0, then is likely to be compressed, encrypted or packed
-            content.append("1\t");
-        } else {
-            content.append("0\t");
-        }
+        // Heuristic based on dex file entropy: if an executable file has an entropy greater than 7.0, then is likely to be compressed, encrypted or packed
+        content.append(String.format("%.2f", apkHandler.getEntropy()));
         for (String pm : permissions) {
             if (apkHandler.getPermissions().contains(pm))
                 content.append("1\t");
