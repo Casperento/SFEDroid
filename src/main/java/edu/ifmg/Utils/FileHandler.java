@@ -64,7 +64,6 @@ public class FileHandler {
     public static double getFileEntropy(InputStream fileInputStream) {
         double entropy = 0.0;
         try {
-//            FileInputStream fileInputStream = new FileInputStream(filePath);
             int fileSize = fileInputStream.available();
             int[] byteFrequency = new int[256]; // Array to hold byte frequency
 

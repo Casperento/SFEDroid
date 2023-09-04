@@ -13,6 +13,13 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * ResultsParser is a class for handling FlowDroid's Taint Analysis results. So
+ * it parses the results generated in the XML format.
+ *
+ * @author Casperento
+ *
+ */
 public class ResultsParser {
     private static final Logger logger = LoggerFactory.getLogger(ResultsParser.class);
     private static ResultsParser instance;

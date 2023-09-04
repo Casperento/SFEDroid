@@ -80,6 +80,23 @@ public class Analyzer {
         app = new SetupApplication(config);
     }
 
+    /**
+     * <p>Getter method for the list of reachable methods. The strings are SootMethods' signatures.
+     * </p>
+     * @param
+     * @return list of reachable methods' signatures
+     * @since 1.0
+     */
+    public List<String> getReachable() { return reachable; }
+
+    /**
+     * <p>Method that runs the Taint Analysis and collect
+     * callgraph's related results, such as edges and reachable methods.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     public void analyze() {
         try {
             app.runInfoflow("SourcesAndSinks.txt");
@@ -99,12 +116,20 @@ public class Analyzer {
         filterCallGraph();
     }
 
+    /**
+     * <p>Method that traverses callgraph's edges and make them available
+     * for exporting as dot file.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     private void filterCallGraph() {
         validClasses = getValidClasses();
 
         for (SootClass sootClass : validClasses) {
             for (SootMethod sootMethod : sootClass.getMethods()) {
-                if (!isValidMethod(sootMethod))
+                if (!isAppMethod(sootMethod))
                     continue;
 
                 for (Iterator<Edge> it = callGraph.edgesInto(sootMethod); it.hasNext();) {
@@ -140,10 +165,26 @@ public class Analyzer {
         }
     }
 
+    /**
+     * <p>Method that returns true when the configured analyzer has
+     * an error and must be terminated.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     public boolean hasError() {
         return hasError;
     }
 
+    /**
+     * <p>Method that builds up a list containing methods mapped by permissions, that are
+     * reachable by some path in some app's activity lifecycle.
+     * </p>
+     * @param mapper current PermissionsMapper instance that was loaded before the analysis
+     * @return
+     * @since 1.0
+     */
     public void listReachableMethods(PermissionsMapper mapper) {
         for (String perm : params.getPermissions()) {
             List<String> methods = mapper.getPermissionMethods().get(perm);
@@ -158,6 +199,14 @@ public class Analyzer {
         }
     }
 
+    /**
+     * <p>Method that builds up a list containing methods mapped by permissions, that are
+     * reachable by some path in some app's activity lifecycle.
+     * </p>
+     * @param signature App's method signature. The signature is formatted to SootMethod's syntax by the PermissionsMapper class
+     * @return true if the method is reachable by some path in the app's callgraph
+     * @since 1.0
+     */
     private Boolean isMethodReachable(String signature) {
         if (reachableMethods == null || reachableMethods.size() < 1) {
             logger.error("reachableMethods variable empty or not initialized...");
@@ -173,6 +222,13 @@ public class Analyzer {
         return reachableMethods.contains(method);
     }
 
+    /**
+     * <p>Method that filters out only classes that matters for callgraph printing.
+     * </p>
+     * @param
+     * @return list of SootClasses that are going to be used in the process of callgraph printing
+     * @since 1.0
+     */
     private List<SootClass> getValidClasses() {
         for (SootClass sootClass : Scene.v().getApplicationClasses()) {
             if (sootClass.getName().contains(params.getPkgName() + ".R") || sootClass.getName().contains(params.getPkgName() + ".BuildConfig"))
@@ -182,7 +238,15 @@ public class Analyzer {
         return validClasses;
     }
 
-    private boolean isValidMethod(SootMethod sootMethod) {
+    /**
+     * <p>Method that checks if some method in the callgraph is created by the app or not. It
+     * filters out methods from the android api/dummy methods/java ones and constructor methods.
+     * </p>
+     * @param sootMethod Soot's method object
+     * @return true if the method was created by the App
+     * @since 1.0
+     */
+    private boolean isAppMethod(SootMethod sootMethod) {
         if (sootMethod.getName().equals("<init>") || sootMethod.getName().equals("<clinit>"))
             return false;
         if (/*sootMethod.getDeclaringClass().getName().startsWith("android.") ||*/ sootMethod.getDeclaringClass().getName().startsWith("com.google.android") || sootMethod.getDeclaringClass().getName().startsWith("androidx."))
@@ -194,14 +258,28 @@ public class Analyzer {
         return true;
     }
 
+    /**
+     * <p>Method that checks if some callgraph's edge is valid for the printing process.
+     * </p>
+     * @param edge Soot's Edge object
+     * @return true if the edge is valid for the callgraph printing process
+     * @since 1.0
+     */
     private boolean isValidEdge(Edge edge) {
         if (!edge.src().getDeclaringClass().isApplicationClass())
             return false;
-        if (!isValidMethod(edge.src()) || !isValidMethod(edge.tgt()))
+        if (!isAppMethod(edge.src()) || !isAppMethod(edge.tgt()))
             return false;
         return validClasses.contains(edge.src().getDeclaringClass()) || validClasses.contains(edge.tgt().getDeclaringClass());
     }
 
+    /**
+     * <p>Method that exports the callgraph, as DOT file, of the app under analysis.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     public void exportCallgraph() {
         if (callGraph == null) {
             logger.error("Cannot export null call graph...");
@@ -269,6 +347,13 @@ public class Analyzer {
         }
     }
 
+    /**
+     * <p>Method that prints the columns that forms the feature set of the generated dataset.
+     * </p>
+     * @param mapper PermissionsMapper instance, used to print permissions and mapped method's signatures
+     * @return
+     * @since 1.0
+     */
     public void prepareBasicFeatures(PermissionsMapper mapper) {
         if (!Analyzer.permissions.isEmpty() || !Analyzer.mappedMethods.isEmpty() || !Analyzer.sourcesSinksMethodsSigs.isEmpty())
             return;
@@ -285,6 +370,13 @@ public class Analyzer {
             createNewDatasetFile();
     }
 
+    /**
+     * <p>Method that creates a new dataset.tsv file, when specified in the CLI.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     private void createNewDatasetFile() {
         StringBuilder content = new StringBuilder("label\tpkgName\tminSdkVersion\ttargetSdkVersion\tapkSize\tdexEntropy\t");
         for (String pm : permissions)
@@ -301,6 +393,13 @@ public class Analyzer {
         }
     }
 
+    /**
+     * <p>Method that collect analysis results related to the apk under analysis.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     public void prepareApkFeatures() {
         // Preparing apk-specific features
         apkHandler.setSize(FileHandler.getFileSize(params.getSourceFilePath()));
@@ -318,6 +417,13 @@ public class Analyzer {
         }
     }
 
+    /**
+     * <p>Method that export features to dataset.tsv file. If the file already exists, it appends data to it.
+     * </p>
+     * @param
+     * @return
+     * @since 1.0
+     */
     public void exportDataSet() {
         // Build file content to export
         StringBuilder content = new StringBuilder(String.format("%s\t%s\t%s\t%s\t%d\t", params.getDefinedLabel(), params.getPkgName(), params.getMinSdkVersion(), params.getTargetSdkVersion(), apkHandler.getSize()));
@@ -348,6 +454,4 @@ public class Analyzer {
             createNewDatasetFile();
         FileHandler.appendContentToFile(outputDatasetFile.toString(), content.toString());
     }
-
-    public List<String> getReachable() { return reachable; }
 }
