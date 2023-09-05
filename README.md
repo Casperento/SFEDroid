@@ -1,9 +1,8 @@
 ## Static Features Extractor for Android (SFEDroid)
 
-SFEDroid is a tool for analyzing APKs statically to build up a dataset. It does so by managing
-[FlowDroid](https://github.com/secure-software-engineering/FlowDroid) data flow analysis capabilities. It also uses android permission mappings provided by [axplorer](https://github.com/reddr/axplorer).
+SFEDroid is a tool for analyzing APKs statically to build up a dataset. It does so by managing [FlowDroid](https://github.com/secure-software-engineering/FlowDroid) data flow analysis capabilities. It also uses android permission mappings provided by [axplorer](https://github.com/reddr/axplorer).
 
-The current features extractable are (the collumns exported follow this order):
+The current features extractable are (the columns exported follow this order):
 
 - label (1: malware | 0: benign);
 - Package Name;
@@ -13,13 +12,13 @@ The current features extractable are (the collumns exported follow this order):
 - `classes.dex`'s entropy;
 - List of Android Permissions (provided by [axplorer](https://github.com/reddr/axplorer/tree/master/permissions)), set to 1 when it is requested by the app under analysis, otherwise 0;
 - Methods mapped by permissions (provided by [axplorer](https://github.com/reddr/axplorer/tree/master/permissions)), set to 1 when it is reachable in the lifecycle of some app's activity, otherwise 0;
-- List of sink methods (provided by [FlowDroid](https://github.com/secure-software-engineering/FlowDroid/blob/develop/soot-infoflow-android/SourcesAndSinks.txt)), set to 1 when leaks some inforation, otherwise 0;
+- List of sink methods (provided by [FlowDroid](https://github.com/secure-software-engineering/FlowDroid/blob/develop/soot-infoflow-android/SourcesAndSinks.txt)), set to 1 when leaks some information, otherwise 0;
 
 ---
 
 ## Cloning
 
-To clone this project you need to resolve its dependencies. So the following command should suffice:
+To clone this project, you need to resolve its submodules. So the following command should suffice:
 
 ```git clone --recursive https://github.com/Casperento/SFEDroid.git```
 
@@ -27,15 +26,13 @@ To clone this project you need to resolve its dependencies. So the following com
 
 ## Build
 
-The project is managed with maven. The only public accessible FlowDroid version on maven is 2.10.0, but the project uses 
-v2.13.0. This is the current version of their **_develop_** branch, and it must be compiled locally,
-so maven can locate it in your local repository.
+The project is managed with maven. The only public accessible FlowDroid version on maven is 2.10.0, but the project uses v2.13.0. This is the current version of their **_develop_** branch, and it must be compiled locally, so maven can locate it in your local repository.
 
 1. Build and Install FlowDroid locally;
 
 2. Build SFEDroid;
 
-To build, one needs to run the following command in its platform:
+To build, one needs to run the following command in their platform:
 
 > mvn clean install
 
