@@ -14,7 +14,8 @@ import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.util.ArraySet;
 
 /**
- * Manifest is a Facade class to handle a sub-set of meta-data parsed by ProcessManifest.
+ * Manifest is a Facade class to handle a sub-set of meta-data parsed by ProcessManifest
+ * before the analysis starts.
  *
  * @author Casperento
  *

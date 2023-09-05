@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * ApkHandle is a class to encapsulate all features associated to the app
- * under analysis.
+ * ApkHandle is a class to encapsulate all features associated to an app
+ * after the analysis.
  *
  * @author Casperento
  *
