@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,10 +21,11 @@ import soot.jimple.infoflow.InfoflowConfiguration.CallgraphAlgorithm;
  */
 public class Parameters {
     private static final Logger logger = LoggerFactory.getLogger(Parameters.class);
+    private static Parameters instance;
     private Path outputFilePath;
     private Path outputFolderPath;
     private String minSdkVersion;
-    private List<String> permissions;
+    private Set<String> permissions;
     private String targetSdkVersion;
     private String pkgName;
     private String sourceFilePath;
@@ -35,56 +37,79 @@ public class Parameters {
     private boolean hasError = false;
     private boolean createNewDatasetFile;
 
-    public Parameters(Cli cli, String inputFile) {
-        sourceFilePath = inputFile;
-        additionalClassPath = cli.getAdditionalClassPath();
-        cgAlgorithm = cli.getCgAlgorithm();
-        timeOut = cli.getTimeOut();
-        definedLabel = cli.getDefinedLabel();
-        outputFolderPath = Path.of(cli.getOutputFolderPath());
-        createNewDatasetFile = cli.getCreateNewDatasetFile();
+    public static Parameters getInstance(Cli cli, String inputFile) {
+        if (Parameters.instance == null) {
+            Parameters.instance = new Parameters();
+        }
+        clearOldValues(instance);
+        setupParams(instance, cli, inputFile);
+        return instance;
+    }
 
-        Manifest manifestHandler = new Manifest(inputFile);
+    private static void clearOldValues(Parameters instance) {
+        instance.outputFilePath = null;
+        instance.outputFolderPath = null;
+        instance.minSdkVersion = null;
+        instance.permissions = null;
+        instance.targetSdkVersion = null;
+        instance.pkgName = null;
+        instance.sourceFilePath = null;
+        instance.androidJarPath = null;
+        instance.additionalClassPath = null;
+        instance.cgAlgorithm = null;
+        instance.timeOut = null;
+        instance.hasError = false;
+        instance.createNewDatasetFile = false;
+    }
+
+    private static void setupParams(Parameters instance, Cli cli, String inputFile) {
+        instance.sourceFilePath = inputFile;
+        instance.additionalClassPath = cli.getAdditionalClassPath();
+        instance.cgAlgorithm = cli.getCgAlgorithm();
+        instance.timeOut = cli.getTimeOut();
+        instance.definedLabel = cli.getDefinedLabel();
+        instance.outputFolderPath = Path.of(cli.getOutputFolderPath());
+        instance.createNewDatasetFile = cli.getCreateNewDatasetFile();
+
+        Manifest manifestHandler = Manifest.getInstance(inputFile);
 
         // Processing AndroidManifest.xml
         try {
             manifestHandler.process();
         } catch (RuntimeException | IOException | XmlPullParserException e) {
             logger.error(e.getMessage());
-            hasError = true;
+            instance.hasError = true;
             return;
         }
 
         // Setting and creating output folder
-        String apkFileName = Path.of(sourceFilePath).getFileName().toString();
+        String apkFileName = Path.of(instance.sourceFilePath).getFileName().toString();
         apkFileName = apkFileName.split("\\.")[0];
-        outputFilePath = Path.of(cli.getOutputFolderPath(), String.format("%s_%s", manifestHandler.getPackageName(), apkFileName));
-        if (!Files.exists(outputFilePath)) {
+        instance.outputFilePath = Path.of(cli.getOutputFolderPath(), String.format("%s_%s", manifestHandler.getPackageName(), apkFileName));
+        if (!Files.exists(instance.outputFilePath)) {
             logger.info("Creating new output folder for the app under analysis...");
-            if (!outputFilePath.toFile().mkdirs()) {
-                logger.error(String.format("Failed when trying to create output folder: %s", outputFilePath.toString()));
+            if (!instance.outputFilePath.toFile().mkdirs()) {
+                logger.error(String.format("Failed when trying to create output folder: %s", instance.outputFilePath.toString()));
                 return;
             }
         }
 
         // Getting app's meta-data
-        pkgName = manifestHandler.getPackageName();
-        permissions = manifestHandler.getPermissions();
+        instance.pkgName = manifestHandler.getPackageName();
+        instance.permissions = manifestHandler.getPermissions();
 
-        logger.info(String.format("Source APK path: %s", sourceFilePath));
-        androidJarPath = cli.getAndroidJarPath();
-
-        targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
-        logger.info(String.format("Target SDK version: %s", targetSdkVersion));
-
-        minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
-        logger.info(String.format("Min SDK version: %s", minSdkVersion));
-
+        logger.info(String.format("Source APK path: %s", instance.sourceFilePath));
+        instance.androidJarPath = cli.getAndroidJarPath();
+        logger.info(String.format("App main entry point class: %s", manifestHandler.getMainEntryPointSig()));
+        instance.targetSdkVersion = String.valueOf(manifestHandler.getTargetSdkVersion());
+        logger.info(String.format("Target SDK version: %s", instance.targetSdkVersion));
+        instance.minSdkVersion = String.valueOf(manifestHandler.getMinSdkVersion());
+        logger.info(String.format("Min SDK version: %s", instance.minSdkVersion));
         logger.info(String.format("Android Jars path: %s", cli.getAndroidJarPath()));
         logger.info(String.format("Call graph build algorithm: %s", cli.getCgAlgorithm()));
-        logger.info(String.format("Output path: %s", outputFilePath.toString()));
+        logger.info(String.format("Output path: %s", instance.outputFilePath.toString()));
         logger.info(String.format("Print call graph: %b", cli.getExportCallGraph()));
-        logger.info(String.format("Package Name: %s", pkgName));
+        logger.info(String.format("Package Name: %s", instance.pkgName));
     }
 
     public boolean hasError() {
@@ -111,7 +136,7 @@ public class Parameters {
     public String getMinSdkVersion() {
         return minSdkVersion;
     }
-    public List<String> getPermissions() {
+    public Set<String> getPermissions() {
         return permissions;
     }
     public String getTargetSdkVersion() {

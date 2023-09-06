@@ -60,14 +60,14 @@ public class Main {
                 logger.info(String.format("Analyzing sample (%d/%d): '%s'...", i, totalApks, apk));
                 i++;
                 if (Files.exists(Path.of(apk))) {
-                    Parameters p = new Parameters(cli, apk);
+                    Parameters p = Parameters.getInstance(cli, apk);
                     if (p.hasError()) {
                         System.out.printf("Failed to parse manifest file of '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to parse manifest file of '%s' file. Skipping...%n", apk));
                         failed++;
                         continue;
                     }
-                    Analyzer analyzer = new Analyzer(p);
+                    Analyzer analyzer = Analyzer.getInstance(p);
                     analyzer.analyze();
                     if (!analyzer.hasError()) {
                         analyzer.prepareBasicFeatures(mapper);
@@ -92,12 +92,12 @@ public class Main {
             System.out.println(analysisResults);
             logger.info(analysisResults);
         } else {
-            Parameters p = new Parameters(cli, cli.getSourceFilePath());
+            Parameters p = p = Parameters.getInstance(cli, cli.getSourceFilePath());
             if (p.hasError()) {
                 System.out.println("Failed to parse manifest file of the current apk...");
                 logger.warn("Failed to parse manifest file of the current apk...");
             }
-            Analyzer analyzer = new Analyzer(p);
+            Analyzer analyzer = Analyzer.getInstance(p);
             analyzer.analyze();
             if (!analyzer.hasError()) {
                 analyzer.prepareBasicFeatures(mapper);
@@ -111,8 +111,7 @@ public class Main {
     private static void postAnalysis(Analyzer analyzer, PermissionsMapper mapper, Cli cli) {
         // Check for reachability of methods allowed by permissions
         analyzer.listReachableMethods(mapper);
-        List<String> reachableMethods = analyzer.getReachable();
-        if (reachableMethods.isEmpty())
+        if (analyzer.getReachable().isEmpty())
             logger.info("No reachable methods found...");
 
         if (cli.getExportCallGraph()) {

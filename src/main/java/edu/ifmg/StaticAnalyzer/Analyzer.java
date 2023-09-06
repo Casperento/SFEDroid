@@ -29,22 +29,42 @@ import soot.jimple.toolkits.callgraph.ReachableMethods;
  */
 public class Analyzer {
     private static final Logger logger = LoggerFactory.getLogger(Analyzer.class);
-
+    private static Analyzer instance;
     private SetupApplication app;
-    private CallGraph callGraph = null;
-    private Map<SootMethod, List<SootMethod>> filteredCallGraph = new HashMap<>();
-    private List<SootClass> validClasses = new ArrayList<>();
+    private CallGraph callGraph;
+    private Map<SootMethod, List<SootMethod>> filteredCallGraph;
+    private List<SootClass> validClasses;
     private Parameters params;
     private ReachableMethods reachableMethods;
     private boolean hasError = false;
     File outputDatasetFile;
-
-    private List<String> reachable = new ArrayList<>();
+    private List<String> reachable;
     private final ApkHandler apkHandler = ApkHandler.getInstance();
     private static List<String> sourcesSinksMethodsSigs = new ArrayList<>();
     private static List<String> mappedMethods = new ArrayList<>();
     private static List<String> permissions = new ArrayList<>();
     private static SourcesSinks sourcesSinks = SourcesSinks.getInstance();
+
+    public static Analyzer getInstance(Parameters p) {
+        if (Analyzer.instance == null) {
+            Analyzer.instance = new Analyzer();
+        }
+        clearOldAnalysisConfig(instance);
+        setupAnalysisParams(instance, p);
+        return instance;
+    }
+
+    private static void clearOldAnalysisConfig(Analyzer instance) {
+        instance.app = null;
+        instance.callGraph = null;
+        instance.filteredCallGraph = null;
+        instance.validClasses = null;
+        instance.params = null;
+        instance.reachableMethods = null;
+        instance.hasError = false;
+        instance.outputDatasetFile = null;
+        instance.reachable = null;
+    }
 
     /**
      * <p>The constructor takes an object of the Parameters class to setup the static analyzer.
@@ -53,20 +73,20 @@ public class Analyzer {
      * @return
      * @since 1.0
      */
-    public Analyzer(Parameters p) {
-        params = p;
-        String analysisResultsFile = Path.of(params.getOutputFilePath().toString(), "analysis_results.xml").toString();
-        outputDatasetFile = new File(params.getOutputFolderPath().toString(), "dataset.tsv");
+    private static void setupAnalysisParams(Analyzer instance, Parameters p) {
+        instance.params = p;
+        String analysisResultsFile = Path.of(instance.params.getOutputFilePath().toString(), "analysis_results.xml").toString();
+        instance.outputDatasetFile = new File(instance.params.getOutputFolderPath().toString(), "dataset.tsv");
 
         // Configuring flowdroid options to generate Call Graphs
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
-        config.getAnalysisFileConfig().setTargetAPKFile(params.getSourceFilePath());
-        config.getAnalysisFileConfig().setAdditionalClasspath(params.getAdditionalClassPath());
+        config.getAnalysisFileConfig().setTargetAPKFile(instance.params.getSourceFilePath());
+        config.getAnalysisFileConfig().setAdditionalClasspath(instance.params.getAdditionalClassPath());
         config.getAnalysisFileConfig().setOutputFile(analysisResultsFile); // file to write the analysis' results
-        config.setCallgraphAlgorithm(params.getCgAlgorithm());
+        config.setCallgraphAlgorithm(instance.params.getCgAlgorithm());
         config.setEnableReflection(true);
 
-        config.getAnalysisFileConfig().setAndroidPlatformDir(params.getAndroidJarPath());
+        config.getAnalysisFileConfig().setAndroidPlatformDir(instance.params.getAndroidJarPath());
 
         // Taint Analysis related settings
         config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
@@ -76,15 +96,15 @@ public class Analyzer {
 //        config.setEnableExceptionTracking(false); // exclude try-catch from the analysis
 
         // Timeout settings
-        if (params.getTimeOut() != null) {
-            int timeout = params.getTimeOut();
+        if (instance.params.getTimeOut() != null) {
+            int timeout = instance.params.getTimeOut();
             config.setDataFlowTimeout(timeout);
             config.getCallbackConfig().setCallbackAnalysisTimeout(timeout);
             config.getPathConfiguration().setPathReconstructionTimeout(timeout);
         }
 
         // Setting up application
-        app = new SetupApplication(config);
+        instance.app = new SetupApplication(config);
     }
 
     /**
@@ -133,6 +153,7 @@ public class Analyzer {
      */
     private void filterCallGraph() {
         validClasses = getValidClasses();
+        filteredCallGraph = new HashMap<>();
 
         for (SootClass sootClass : validClasses) {
             for (SootMethod sootMethod : sootClass.getMethods()) {
@@ -193,6 +214,7 @@ public class Analyzer {
      * @since 1.0
      */
     public void listReachableMethods(PermissionsMapper mapper) {
+        reachable = new ArrayList<>();
         for (String perm : params.getPermissions()) {
             List<String> methods = mapper.getPermissionMethods().get(perm);
             if (methods != null) {
@@ -237,6 +259,7 @@ public class Analyzer {
      * @since 1.0
      */
     private List<SootClass> getValidClasses() {
+        validClasses = new ArrayList<>();
         for (SootClass sootClass : Scene.v().getApplicationClasses()) {
             if (sootClass.getName().contains(params.getPkgName() + ".R") || sootClass.getName().contains(params.getPkgName() + ".BuildConfig"))
                 continue;
@@ -410,7 +433,7 @@ public class Analyzer {
     public void prepareApkFeatures() {
         // Preparing apk-specific features
         apkHandler.setSize(FileHandler.getFileSize(params.getSourceFilePath()));
-        apkHandler.setPermissions(params.getPermissions());
+        apkHandler.setPermissions(params.getPermissions().stream().toList());
         InputStream outputDexFile = FileHandler.getDexFileFromApk(params.getSourceFilePath());
         if (outputDexFile != null)
             apkHandler.setEntropy(FileHandler.getFileEntropy(outputDexFile));

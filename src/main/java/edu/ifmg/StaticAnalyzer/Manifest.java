@@ -22,14 +22,26 @@ import soot.util.ArraySet;
  */
 public class Manifest {
     private static final Logger logger = LoggerFactory.getLogger(Manifest.class);
-    private Path appPath = null;
-    private String fileName = new String();
-    private ProcessManifest manifest = null;
-    private String mainEntryPointSig = new String();
-    private List<String> permissions = new ArrayList<>();
+    private static Manifest instance;
+    private Path appPath;
+    private String fileName;
+    private ProcessManifest manifest;
+    private String mainEntryPointSig;
 
-    public Manifest(String path) {
-        appPath = Path.of(path);
+    public static Manifest getInstance(String path) {
+        if (Manifest.instance == null) {
+            Manifest.instance = new Manifest();
+        }
+        clearOldValues(instance);
+        instance.appPath = Path.of(path);
+        return instance;
+    }
+
+    private static void clearOldValues(Manifest instance) {
+        instance.appPath = null;
+        instance.fileName = null;
+        instance.manifest = null;
+        instance.mainEntryPointSig = null;
     }
 
     public void process() throws IOException, XmlPullParserException {
@@ -59,10 +71,8 @@ public class Manifest {
         return fileName;
     }
 
-    public List<String> getPermissions() {
-        permissions.addAll(manifest.getPermissions());
-        Collections.sort(permissions);
-        return permissions;
+    public Set<String> getPermissions() {
+        return manifest.getPermissions();
     }
 
     public int getMinSdkVersion() {
