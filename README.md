@@ -66,3 +66,9 @@ usage: SFEDroid
  -v,--verbose                       turn on logs and write it to console
                                     and disk ('/src/main/resources/logs')
 ```
+
+### Example
+
+To run SFEDroid with Maven, use the following example. It will analyze each sample for 60 seconds, show detailed output, mark all samples from _list.txt_ as malware, and save a _dataset.tsv_ file in the sfedroid_output folder.
+
+```mvn compile exec:java -Dexec.mainClass="edu.ifmg.Main" -Dexec.args="-v -r 1 -t 60 -l 'list.txt' -o 'sfedroid_output'"```
