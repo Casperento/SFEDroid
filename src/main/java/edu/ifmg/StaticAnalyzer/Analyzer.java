@@ -326,6 +326,7 @@ public class Analyzer {
         Map<SootMethod, Integer> keyIndex = new HashMap<>();
         int i = 0;
         String activityColor = " fontcolor=black, color=cornflowerblue fillcolor=cornflowerblue];\n";
+        String entryPointActivityColor = " fontcolor=black, color=red fillcolor=red];\n";
         String methodName;
         List<SootMethod> parents = null;
         SootMethod child = null;
@@ -345,9 +346,12 @@ public class Analyzer {
                     methodName = String.format("%s.%s", parent.getDeclaringClass().getShortName(), parent.getName());
                     keyIndex.put(parent, i);
 
-                    if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass"))
+                    if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass")) {
                         fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
-                    else {
+                    } else if (parent.getReturnType().toString().equals(params.getMainEntryPointClass())) {
+                        methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", params.getPkgName()));
+                        fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(entryPointActivityColor);
+                    } else {
                         methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", params.getPkgName()));
                         fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(activityColor);
                     }

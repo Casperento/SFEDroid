@@ -64,6 +64,7 @@ public class Main {
                     if (p.hasError()) {
                         System.out.printf("Failed to parse manifest file of '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to parse manifest file of '%s' file. Skipping...%n", apk));
+                        FileHandler.deleteFolder(p.getOutputFilePath().toString());
                         failed++;
                         continue;
                     }
@@ -75,6 +76,7 @@ public class Main {
                     } else {
                         System.out.printf("Failed to analyze '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to analyze '%s' file. Skipping...%n", apk));
+                        FileHandler.deleteFolder(p.getOutputFilePath().toString());
                         failed++;
                     }
                 } else {
@@ -103,6 +105,7 @@ public class Main {
                 analyzer.prepareBasicFeatures(mapper);
                 postAnalysis(analyzer, mapper, cli);
             } else {
+                FileHandler.deleteFolder(p.getOutputFilePath().toString());
                 System.exit(1);
             }
         }

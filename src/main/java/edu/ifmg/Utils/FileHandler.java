@@ -1,6 +1,17 @@
 package edu.ifmg.Utils;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -109,6 +120,36 @@ public class FileHandler {
         } catch (IOException e) {
             logger.error(e.getMessage());
         }
+    }
+
+    public static void deleteFolder(String folderPath) {
+        Path path = (new File(folderPath)).toPath();
+        if (!Files.exists(path)) {
+            logger.info("Folder being deleted does not exist on disk...");
+            return;
+        }
+        try {
+            if (Files.list(path).findAny().isEmpty()) {
+                Files.delete(path);
+            } else {
+                deleteFilesRecursively(path);
+            }
+        } catch (IOException e) {
+            logger.error(e.getMessage());
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    private static void deleteFilesRecursively(Path path) throws IOException {
+        if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+            try (DirectoryStream<Path> entries = Files.newDirectoryStream(path)) {
+                for (Path entry: entries) {
+                    deleteFilesRecursively(entry);
+                }
+            }
+        }
+        Files.delete(path);
     }
 
 }

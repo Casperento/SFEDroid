@@ -36,6 +36,7 @@ public class Parameters {
     private int definedLabel;
     private boolean hasError = false;
     private boolean createNewDatasetFile;
+    private String mainEntryPointClass;
 
     public static Parameters getInstance(Cli cli, String inputFile) {
         if (Parameters.instance == null) {
@@ -60,6 +61,7 @@ public class Parameters {
         instance.timeOut = null;
         instance.hasError = false;
         instance.createNewDatasetFile = false;
+        instance.mainEntryPointClass = null;
     }
 
     private static void setupParams(Parameters instance, Cli cli, String inputFile) {
@@ -97,6 +99,7 @@ public class Parameters {
         // Getting app's meta-data
         instance.pkgName = manifestHandler.getPackageName();
         instance.permissions = manifestHandler.getPermissions();
+        instance.mainEntryPointClass = manifestHandler.getMainEntryPointSig();
 
         logger.info(String.format("Source APK path: %s", instance.sourceFilePath));
         instance.androidJarPath = cli.getAndroidJarPath();
@@ -148,4 +151,8 @@ public class Parameters {
     public int getDefinedLabel() { return definedLabel; }
     public Path getOutputFolderPath() { return outputFolderPath; }
     public boolean getCreateNewDatasetFile() { return createNewDatasetFile; }
+
+    public String getMainEntryPointClass() {
+        return mainEntryPointClass;
+    }
 }
