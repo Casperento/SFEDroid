@@ -89,11 +89,11 @@ public class Analyzer {
         config.getAnalysisFileConfig().setAndroidPlatformDir(instance.params.getAndroidJarPath());
 
         // Taint Analysis related settings
-        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
-//        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.PropagateConstants);
-//        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.RemoveSideEffectFreeCode);
         config.setLogSourcesAndSinks(true);
-//        config.setEnableExceptionTracking(false); // exclude try-catch from the analysis
+        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.PropagateConstants);
+        config.setEnableExceptionTracking(false); // do not track exceptional flows
+        config.setStaticFieldTrackingMode(InfoflowConfiguration.StaticFieldTrackingMode.None); // do not track taints on static fields
+        config.setFlowSensitiveAliasing(false); // use flow insensitive aliasing
 
         // Timeout settings
         if (instance.params.getTimeOut() != null) {
