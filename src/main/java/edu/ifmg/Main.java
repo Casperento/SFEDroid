@@ -64,7 +64,6 @@ public class Main {
                     if (p.hasError()) {
                         System.out.printf("Failed to parse manifest file of '%s' file. Skipping...%n", apk);
                         logger.warn(String.format("Failed to parse manifest file of '%s' file. Skipping...%n", apk));
-                        FileHandler.deleteFolder(p.getOutputFilePath().toString());
                         failed++;
                         continue;
                     }
@@ -94,7 +93,7 @@ public class Main {
             System.out.println(analysisResults);
             logger.info(analysisResults);
         } else {
-            Parameters p = p = Parameters.getInstance(cli, cli.getSourceFilePath());
+            Parameters p = Parameters.getInstance(cli, cli.getSourceFilePath());
             if (p.hasError()) {
                 System.out.println("Failed to parse manifest file of the current apk...");
                 logger.warn("Failed to parse manifest file of the current apk...");
