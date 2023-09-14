@@ -21,21 +21,6 @@ public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
-        // Copying latest SourcesAndSinks.txt file from soot-infoflow-android jar
-        if (!Files.exists(Path.of("SourcesAndSinks.txt"))) {
-            try {
-                InputStream sourcesSinksFile = ResourceUtils.getResourceStream("/SourcesAndSinks.txt");
-                byte[] bytes = sourcesSinksFile.readAllBytes();
-                FileOutputStream file = new FileOutputStream("SourcesAndSinks.txt");
-                file.write(bytes);
-                file.close();
-                sourcesSinksFile.close();
-            } catch (IOException | RuntimeException e) {
-                logger.error("SourcesAndSinks.txt not found...");
-                System.exit(1);
-            }
-        }
-
         Cli cli = Cli.getInstance();
         HelpFormatter formatter = new HelpFormatter();
         try {

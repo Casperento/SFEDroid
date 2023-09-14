@@ -83,17 +83,17 @@ public class Analyzer {
         config.getAnalysisFileConfig().setTargetAPKFile(instance.params.getSourceFilePath());
         config.getAnalysisFileConfig().setAdditionalClasspath(instance.params.getAdditionalClassPath());
         config.getAnalysisFileConfig().setOutputFile(analysisResultsFile); // file to write the analysis' results
-        config.setCallgraphAlgorithm(instance.params.getCgAlgorithm());
-        config.setEnableReflection(true);
-
         config.getAnalysisFileConfig().setAndroidPlatformDir(instance.params.getAndroidJarPath());
+        config.setCallgraphAlgorithm(instance.params.getCgAlgorithm());
 
         // Taint Analysis related settings
+        config.setEnableReflection(true);
         config.setLogSourcesAndSinks(true);
-        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.PropagateConstants);
+        config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
         config.setEnableExceptionTracking(false); // do not track exceptional flows
         config.setStaticFieldTrackingMode(InfoflowConfiguration.StaticFieldTrackingMode.None); // do not track taints on static fields
         config.setFlowSensitiveAliasing(false); // use flow insensitive aliasing
+        config.getAccessPathConfiguration().setAccessPathLength(1); // setting acces path length to 1
 
         // Timeout settings
         if (instance.params.getTimeOut() != null) {
