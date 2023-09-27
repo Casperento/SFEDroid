@@ -412,14 +412,14 @@ public class Analyzer {
      * @since 1.0
      */
     private void createNewDatasetFile() {
-        StringBuilder content = new StringBuilder("label\tpkgName\tminSdkVersion\ttargetSdkVersion\tapkSize\tdexEntropy\t");
+        StringBuilder content = new StringBuilder("label\tminSdkVersion\ttargetSdkVersion\tapkSize\tdexEntropy");
         for (String pm : permissions)
-            content.append(String.format("%s\t", pm));
+            content.append(String.format("\t%s", pm));
         for (String mm : mappedMethods)
-            content.append(String.format("%s\t", mm));
+            content.append(String.format("\t%s", mm));
         for (String ss : sourcesSinksMethodsSigs)
-            content.append(String.format("%s\t", ss));
-        content.append("target\n");
+            content.append(String.format("\t%s", ss));
+        content.append("\n");
         try {
             FileHandler.exportFile(content.toString(), outputDatasetFile.getParent(), outputDatasetFile.getName());
         } catch (IOException e) {
@@ -460,28 +460,28 @@ public class Analyzer {
      */
     public void exportDataSet() {
         // Build file content to export
-        StringBuilder content = new StringBuilder(String.format("%s\t%s\t%s\t%s\t%d\t", params.getDefinedLabel(), params.getPkgName(), params.getMinSdkVersion(), params.getTargetSdkVersion(), apkHandler.getSize()));
+        StringBuilder content = new StringBuilder(String.format("%s\t%s\t%s\t%d", params.getDefinedLabel(), params.getMinSdkVersion(), params.getTargetSdkVersion(), apkHandler.getSize()));
         // Heuristic based on dex file entropy: if an executable file has an entropy greater than 7.0, then is likely to be compressed, encrypted or packed
-        content.append(String.format("%.2f", apkHandler.getEntropy()));
+        content.append(String.format("\t%.2f", apkHandler.getEntropy()));
         for (String pm : permissions) {
             if (apkHandler.getPermissions().contains(pm))
-                content.append("1\t");
+                content.append("\t1");
             else
-                content.append("0\t");
+                content.append("\t0");
         }
         for (String mm : mappedMethods) {
             if (reachable.contains(mm))
-                content.append("1\t");
+                content.append("\t1");
             else
-                content.append("0\t");
+                content.append("\t0");
         }
         for (String ss : sourcesSinksMethodsSigs) {
             if (apkHandler.getLeakingMethods().contains(ss))
-                content.append("1\t");
+                content.append("\t1");
             else
-                content.append("0\t");
+                content.append("\t0");
         }
-        content.append("0\n");
+        content.append("\n");
 
         // Export feature set to CSV file
         if (!outputDatasetFile.exists())
