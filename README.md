@@ -5,7 +5,6 @@ SFEDroid is a tool for analyzing APKs statically to build up a dataset. It does 
 The current features extractable are (the columns exported follow this order):
 
 - label (1: malware | 0: benign);
-- Package Name;
 - Min SDK Version;
 - Target SDK Version;
 - Apk file size;
