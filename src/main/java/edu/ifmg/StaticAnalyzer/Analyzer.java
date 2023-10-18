@@ -348,7 +348,7 @@ public class Analyzer {
 
                     if (!parent.getDeclaringClass().getShortName().equals("dummyMainClass")) {
                         fileData.append(i).append(" [label=\"").append(methodName).append("\"];\n");
-                    } else if (parent.getReturnType().toString().equals(params.getMainEntryPointClass())) {
+                    } else if (parent.getReturnType().toString().endsWith(params.getMainEntryPointClass())) {
                         methodName = StringUtils.remove(parent.getReturnType().toString(), String.format("%s.", params.getPkgName()));
                         fileData.append(i).append(" [label=\"").append(methodName).append("\"").append(entryPointActivityColor);
                     } else {
