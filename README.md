@@ -23,15 +23,22 @@ To clone this project, you need to resolve its submodules. So the following comm
 
 ---
 
+## Requirements
+
+1. JDK 17
+2. Maven 3.9.5
+
+---
+
 ## Build
 
 The project is managed with maven. The only public accessible FlowDroid version on maven is 2.10.0, but the project uses v2.13.0. This is the current version of their **_develop_** branch, and it must be compiled locally, so maven can locate it in your local repository.
 
-1. Build and Install FlowDroid locally;
+1. Build and Install FlowDroid locally:
 
-2. Build SFEDroid;
+> mvn install -DskipTests
 
-To build, one needs to run the following command in their platform:
+3. Build SFEDroid:
 
 > mvn clean install
 
@@ -68,6 +75,13 @@ usage: SFEDroid
 
 ### Example
 
-To run SFEDroid with Maven, use the following example. It will analyze each sample for 60 seconds, show detailed output, mark all samples from _list.txt_ as malware, and save a _dataset.tsv_ file in the sfedroid_output folder.
+To run SFEDroid through Maven, use the following example. It will analyze each sample for 60 seconds, show detailed output, mark all samples from _list.txt_ as malware, and save a _dataset.tsv_ file in the sfedroid_output folder.
 
 ```mvn compile exec:java -Dexec.mainClass="edu.ifmg.Main" -Dexec.args="-v -r 1 -t 60 -l 'list.txt' -o 'sfedroid_output'"```
+
+#### Printing Call Graph
+
+To print an exported call graph, you need to render the dot file exported into the output folder:
+
+> dot -T png -O sfedroid_output/pkgName_apkFileName/apkFileName.apk.dot
+
